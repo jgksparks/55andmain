@@ -2,7 +2,7 @@
 import { useState, useMemo, useEffect, useCallback, useRef } from "react";
 import Nav from "@/components/Nav";
 import ListingCard from "@/components/ListingCard";
-import { getListings, getCities, type Category } from "@/lib/data";
+import { getCities, type Category, type Listing } from "@/lib/data";
 import { getHiddenSubcategories, getHiddenCategories, getHiddenItems, countHidden } from "@/lib/prefs";
 
 function getNearDays(): { label: string; date: string }[] {
@@ -146,6 +146,7 @@ export default function Home() {
   const [hiddenSubs, setHiddenSubs] = useState<string[]>([]);
   const [hiddenCats, setHiddenCats] = useState<string[]>([]);
   const [hiddenItems, setHiddenItems] = useState<string[]>([]);
+  const [allListings, setAllListings] = useState<Listing[]>([]);
 
   const loadPrefs = useCallback(() => {
     setHiddenCount(countHidden());
@@ -156,10 +157,15 @@ export default function Home() {
 
   useEffect(() => { loadPrefs(); }, [loadPrefs]);
 
+  useEffect(() => {
+    fetch("/api/listings?status=published")
+      .then(r => r.json())
+      .then(setAllListings)
+      .catch(console.error);
+  }, []);
+
   const listings = useMemo(() => {
-    let results = getListings({ status: "published" });
-    // Multi-city filter
-    results = results.filter(l => selectedCities.includes(l.city));
+    let results = allListings.filter(l => selectedCities.includes(l.city));
     if (activeCategory !== "All") results = results.filter(l => l.category === activeCategory);
     results = results.filter(l =>
       !hiddenSubs.includes(l.subcategory) &&
@@ -177,7 +183,7 @@ export default function Home() {
       );
     }
     return results;
-  }, [selectedCities, activeCategory, search, hiddenSubs, hiddenCats, hiddenItems, seniorOnly]);
+  }, [allListings, selectedCities, activeCategory, search, hiddenSubs, hiddenCats, hiddenItems, seniorOnly]);
 
   const allSelected = selectedCities.length === cities.length;
 
