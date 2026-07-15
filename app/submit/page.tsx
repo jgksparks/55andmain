@@ -1,7 +1,7 @@
 "use client";
 import { useState } from "react";
 import Nav from "@/components/Nav";
-import { addListing, type Category } from "@/lib/data";
+import { type Category } from "@/lib/data";
 
 const CATEGORIES: Category[] = ["Events", "Experiences", "Services", "Groups", "Fundraisers", "Volunteers"];
 
@@ -24,8 +24,8 @@ export default function SubmitPage() {
     date: "",
     time: "",
     location: "",
-    city: "",
-    state: "",
+    city: "Essex",
+    state: "CT",
     cost: "Free",
     contact: "",
     url: "",
@@ -37,15 +37,19 @@ export default function SubmitPage() {
     setForm((f) => ({ ...f, [field]: value }));
   }
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    addListing({
-      ...form,
-      category,
-      seniorDiscount,
-      tags: form.tags.split(",").map((t) => t.trim()).filter(Boolean),
-      status: "pending",
-      submittedBy: "community",
+    await fetch("/api/listings", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        ...form,
+        category,
+        seniorDiscount,
+        tags: form.tags.split(",").map((t) => t.trim()).filter(Boolean),
+        status: "pending",
+        submittedBy: "community",
+      }),
     });
     setSubmitted(true);
   }
@@ -209,37 +213,21 @@ export default function SubmitPage() {
             />
           </div>
 
-          {/* City & State */}
-          <div className="flex gap-3">
-            <div className="flex-1">
-              <label className="block text-sm font-semibold mb-1.5" style={{ fontFamily: "Arial, sans-serif" }}>
-                City *
-              </label>
-              <input
-                required
-                type="text"
-                value={form.city}
-                onChange={(e) => set("city", e.target.value)}
-                placeholder="Westfield"
-                className="w-full border border-stone-300 rounded-lg px-3 py-2.5 text-sm"
-                style={{ fontFamily: "Arial, sans-serif" }}
-              />
-            </div>
-            <div className="w-24">
-              <label className="block text-sm font-semibold mb-1.5" style={{ fontFamily: "Arial, sans-serif" }}>
-                State *
-              </label>
-              <input
-                required
-                type="text"
-                value={form.state}
-                onChange={(e) => set("state", e.target.value)}
-                placeholder="NJ"
-                maxLength={2}
-                className="w-full border border-stone-300 rounded-lg px-3 py-2.5 text-sm uppercase"
-                style={{ fontFamily: "Arial, sans-serif" }}
-              />
-            </div>
+          {/* Town */}
+          <div>
+            <label className="block text-sm font-semibold mb-1.5" style={{ fontFamily: "Arial, sans-serif" }}>
+              Town *
+            </label>
+            <select
+              value={form.city}
+              onChange={(e) => set("city", e.target.value)}
+              className="w-full border border-stone-300 rounded-lg px-3 py-2.5 text-sm bg-white"
+              style={{ fontFamily: "Arial, sans-serif" }}
+            >
+              {["Chester","Deep River","Essex","Old Saybrook","Old Lyme","Westbrook","Clinton"].map(c => (
+                <option key={c}>{c}</option>
+              ))}
+            </select>
           </div>
 
           {/* Cost */}
