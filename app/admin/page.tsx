@@ -1,20 +1,20 @@
 "use client";
-import { useState, useMemo } from "react";
+import { useState, useEffect, useCallback } from "react";
 import Nav from "@/components/Nav";
-import { getListings, updateListing, deleteListing, addListing, type Listing, type Category, type Status } from "@/lib/data";
+import { type Listing, type Category, type Status } from "@/lib/data";
 
 const CATEGORIES: Category[] = ["Events", "Experiences", "Services", "Groups", "Fundraisers", "Volunteers"];
 const SUBCATEGORIES: Record<Category, string[]> = {
-  Events: ["Classes", "Lectures", "Music", "Recreation", "Volunteer", "Community Gathering", "Other"],
-  Experiences: ["Adventure Days", "Field Quests", "Self-Guided", "Seasonal Challenge", "Other"],
-  Services: ["Local Business", "Senior Services", "Home Services", "Wellness", "Trusted Provider", "Other"],
-  Groups: ["Walking Groups", "Pickleball", "Garden Clubs", "Book Clubs", "Volunteer Groups", "Other"],
+  Events: ["Classes", "Lectures", "Music", "Recreation", "Volunteer", "Community Gathering", "Live Music", "Theatre", "Senior Programs", "Town Tradition", "Other"],
+  Experiences: ["Adventure Days", "Field Quests", "Self-Guided", "Museums & History", "Art & Galleries", "Nature & Trails", "Local Shopping", "Seasonal Challenge", "Other"],
+  Services: ["Local Business", "Senior Programs", "Home Services", "Health & Wellness", "Transportation", "Trusted Provider", "Other"],
+  Groups: ["Walking Groups", "Pickleball", "Garden Clubs", "Book Clubs", "Volunteer Groups", "Gardening Circle", "Other"],
   Fundraisers: ["Community Fund", "Emergency Services Fund", "Community Event Fund", "Land Conservation Fund", "Other"],
-  Volunteers: ["River Stewardship", "Food Security", "Trail Maintenance", "Hospital Support", "Community Stewardship", "Other"],
+  Volunteers: ["River Stewardship", "Food Security", "Trail Maintenance", "Hospital Support", "Community Stewardship", "Town Stewardship", "Emergency Services", "Other"],
 };
 
-// Simple password gate (replace with real auth for production)
 const CURATOR_PASSWORD = "frontporch";
+const CITIES = ["Chester", "Deep River", "Essex", "Old Saybrook", "Old Lyme", "Westbrook", "Clinton"];
 
 type Tab = "published" | "pending" | "add";
 
@@ -34,17 +34,23 @@ function Badge({ status }: { status: Status }) {
 function AdminRow({ listing, onRefresh }: { listing: Listing; onRefresh: () => void }) {
   const [busy, setBusy] = useState(false);
 
-  function act(updates: Partial<Listing>) {
+  async function act(updates: Record<string, unknown>) {
     setBusy(true);
-    updateListing(listing.id, updates);
+    await fetch(`/api/listings/${listing.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(updates),
+    });
     onRefresh();
     setBusy(false);
   }
 
-  function remove() {
+  async function remove() {
     if (confirm(`Delete "${listing.title}"?`)) {
-      deleteListing(listing.id);
+      setBusy(true);
+      await fetch(`/api/listings/${listing.id}`, { method: "DELETE" });
       onRefresh();
+      setBusy(false);
     }
   }
 
@@ -75,41 +81,29 @@ function AdminRow({ listing, onRefresh }: { listing: Listing; onRefresh: () => v
 
       <div className="flex gap-2 flex-wrap sm:flex-col sm:items-end shrink-0">
         {listing.status !== "published" && (
-          <button
-            disabled={busy}
-            onClick={() => act({ status: "published" })}
+          <button disabled={busy} onClick={() => act({ status: "published" })}
             className="text-xs bg-green-600 text-white px-3 py-1.5 rounded-lg font-semibold hover:bg-green-700 transition-colors"
-            style={{ fontFamily: "Arial, sans-serif" }}
-          >
+            style={{ fontFamily: "Arial, sans-serif" }}>
             Publish
           </button>
         )}
         {listing.status !== "pending" && (
-          <button
-            disabled={busy}
-            onClick={() => act({ status: "pending" })}
+          <button disabled={busy} onClick={() => act({ status: "pending" })}
             className="text-xs bg-amber-500 text-white px-3 py-1.5 rounded-lg font-semibold hover:bg-amber-600 transition-colors"
-            style={{ fontFamily: "Arial, sans-serif" }}
-          >
+            style={{ fontFamily: "Arial, sans-serif" }}>
             Unpublish
           </button>
         )}
         {listing.status !== "rejected" && (
-          <button
-            disabled={busy}
-            onClick={() => act({ status: "rejected" })}
+          <button disabled={busy} onClick={() => act({ status: "rejected" })}
             className="text-xs bg-stone-200 text-stone-700 px-3 py-1.5 rounded-lg font-semibold hover:bg-stone-300 transition-colors"
-            style={{ fontFamily: "Arial, sans-serif" }}
-          >
+            style={{ fontFamily: "Arial, sans-serif" }}>
             Reject
           </button>
         )}
-        <button
-          disabled={busy}
-          onClick={remove}
+        <button disabled={busy} onClick={remove}
           className="text-xs text-red-600 hover:text-red-800 px-1 py-1"
-          style={{ fontFamily: "Arial, sans-serif" }}
-        >
+          style={{ fontFamily: "Arial, sans-serif" }}>
           Delete
         </button>
       </div>
@@ -119,9 +113,10 @@ function AdminRow({ listing, onRefresh }: { listing: Listing; onRefresh: () => v
 
 function AddForm({ onSuccess }: { onSuccess: () => void }) {
   const [category, setCategory] = useState<Category>("Events");
+  const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({
     title: "", subcategory: SUBCATEGORIES["Events"][0], description: "",
-    date: "", time: "", location: "", city: "Westfield", state: "NJ",
+    date: "", time: "", location: "", city: "Chester", state: "CT",
     cost: "Free", contact: "", url: "", tags: "",
   });
   const [seniorDiscount, setSeniorDiscount] = useState(false);
@@ -130,19 +125,25 @@ function AddForm({ onSuccess }: { onSuccess: () => void }) {
     setForm((f) => ({ ...f, [field]: value }));
   }
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    addListing({
-      ...form,
-      category,
-      seniorDiscount,
-      tags: form.tags.split(",").map((t) => t.trim()).filter(Boolean),
-      status: "published",
-      submittedBy: "curator",
+    setSaving(true);
+    await fetch("/api/listings", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        ...form,
+        category,
+        seniorDiscount,
+        tags: form.tags.split(",").map((t) => t.trim()).filter(Boolean),
+        status: "published",
+        submittedBy: "curator",
+      }),
     });
+    setSaving(false);
     onSuccess();
     setSeniorDiscount(false);
-    setForm({ title: "", subcategory: SUBCATEGORIES[category][0], description: "", date: "", time: "", location: "", city: "Westfield", state: "NJ", cost: "Free", contact: "", url: "", tags: "" });
+    setForm({ title: "", subcategory: SUBCATEGORIES[category][0], description: "", date: "", time: "", location: "", city: "Chester", state: "CT", cost: "Free", contact: "", url: "", tags: "" });
   }
 
   return (
@@ -217,20 +218,28 @@ function AddForm({ onSuccess }: { onSuccess: () => void }) {
 
       <div className="grid grid-cols-3 gap-3">
         <div className="col-span-2">
-          <label className="block text-xs font-semibold mb-1" style={{ fontFamily: "Arial, sans-serif" }}>City *</label>
-          <input required type="text" value={form.city} onChange={(e) => set("city", e.target.value)}
-            className="w-full border border-stone-300 rounded-lg px-3 py-2 text-sm" style={{ fontFamily: "Arial, sans-serif" }} />
+          <label className="block text-xs font-semibold mb-1" style={{ fontFamily: "Arial, sans-serif" }}>Town *</label>
+          <select value={form.city} onChange={(e) => set("city", e.target.value)}
+            className="w-full border border-stone-300 rounded-lg px-3 py-2 text-sm" style={{ fontFamily: "Arial, sans-serif" }}>
+            {CITIES.map(c => <option key={c}>{c}</option>)}
+          </select>
         </div>
         <div>
-          <label className="block text-xs font-semibold mb-1" style={{ fontFamily: "Arial, sans-serif" }}>State *</label>
-          <input required type="text" value={form.state} onChange={(e) => set("state", e.target.value)} maxLength={2}
+          <label className="block text-xs font-semibold mb-1" style={{ fontFamily: "Arial, sans-serif" }}>State</label>
+          <input type="text" value={form.state} onChange={(e) => set("state", e.target.value)} maxLength={2}
             className="w-full border border-stone-300 rounded-lg px-3 py-2 text-sm uppercase" style={{ fontFamily: "Arial, sans-serif" }} />
         </div>
       </div>
 
       <div>
-        <label className="block text-xs font-semibold mb-1" style={{ fontFamily: "Arial, sans-serif" }}>Contact</label>
-        <input type="text" value={form.contact} onChange={(e) => set("contact", e.target.value)} placeholder="email or phone"
+        <label className="block text-xs font-semibold mb-1" style={{ fontFamily: "Arial, sans-serif" }}>Contact (email or phone)</label>
+        <input type="text" value={form.contact} onChange={(e) => set("contact", e.target.value)}
+          className="w-full border border-stone-300 rounded-lg px-3 py-2 text-sm" style={{ fontFamily: "Arial, sans-serif" }} />
+      </div>
+
+      <div>
+        <label className="block text-xs font-semibold mb-1" style={{ fontFamily: "Arial, sans-serif" }}>Website URL</label>
+        <input type="text" value={form.url} onChange={(e) => set("url", e.target.value)} placeholder="https://"
           className="w-full border border-stone-300 rounded-lg px-3 py-2 text-sm" style={{ fontFamily: "Arial, sans-serif" }} />
       </div>
 
@@ -240,10 +249,10 @@ function AddForm({ onSuccess }: { onSuccess: () => void }) {
           className="w-full border border-stone-300 rounded-lg px-3 py-2 text-sm" style={{ fontFamily: "Arial, sans-serif" }} />
       </div>
 
-      <button type="submit"
-        className="bg-[#556B3D] text-white px-6 py-2.5 rounded-lg font-semibold text-sm hover:bg-[#3d5229] transition-colors w-fit"
+      <button type="submit" disabled={saving}
+        className="bg-[#556B3D] text-white px-6 py-2.5 rounded-lg font-semibold text-sm hover:bg-[#3d5229] transition-colors w-fit disabled:opacity-50"
         style={{ fontFamily: "Arial, sans-serif" }}>
-        Add Listing
+        {saving ? "Saving…" : "Add Listing"}
       </button>
     </form>
   );
@@ -253,13 +262,20 @@ export default function AdminPage() {
   const [password, setPassword] = useState("");
   const [authed, setAuthed] = useState(false);
   const [tab, setTab] = useState<Tab>("pending");
-  const [tick, setTick] = useState(0);
+  const [listings, setListings] = useState<Listing[]>([]);
+  const [loading, setLoading] = useState(false);
 
-  const allListings = useMemo(() => getListings(), [tick]);
-  const published = allListings.filter((l) => l.status === "published");
-  const pending = allListings.filter((l) => l.status === "pending");
+  const refresh = useCallback(async () => {
+    setLoading(true);
+    const data = await fetch("/api/listings").then(r => r.json());
+    setListings(data);
+    setLoading(false);
+  }, []);
 
-  function refresh() { setTick((t) => t + 1); }
+  useEffect(() => { if (authed) refresh(); }, [authed, refresh]);
+
+  const published = listings.filter(l => l.status === "published");
+  const pending = listings.filter(l => l.status === "pending");
 
   if (!authed) {
     return (
@@ -272,15 +288,9 @@ export default function AdminPage() {
               Enter your curator password to manage listings.
             </p>
             <form onSubmit={(e) => { e.preventDefault(); if (password === CURATOR_PASSWORD) setAuthed(true); else alert("Incorrect password."); }}>
-              <input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="Password"
-                className="w-full border border-stone-300 rounded-lg px-4 py-2.5 text-sm mb-3"
-                style={{ fontFamily: "Arial, sans-serif" }}
-                autoFocus
-              />
+              <input type="password" value={password} onChange={(e) => setPassword(e.target.value)}
+                placeholder="Password" className="w-full border border-stone-300 rounded-lg px-4 py-2.5 text-sm mb-3"
+                style={{ fontFamily: "Arial, sans-serif" }} autoFocus />
               <button type="submit"
                 className="w-full bg-[#556B3D] text-white py-2.5 rounded-lg font-semibold text-sm hover:bg-[#3d5229] transition-colors"
                 style={{ fontFamily: "Arial, sans-serif" }}>
@@ -310,12 +320,11 @@ export default function AdminPage() {
           </button>
         </div>
 
-        {/* Tabs */}
         <div className="flex gap-1 mb-6 border-b border-stone-200">
           {([
             { id: "pending", label: `Review (${pending.length})` },
             { id: "published", label: `Published (${published.length})` },
-            { id: "add", label: "Add Listing" },
+            { id: "add", label: "➕ Add Listing" },
           ] as { id: Tab; label: string }[]).map(({ id, label }) => (
             <button key={id} onClick={() => setTab(id)}
               className={`px-4 py-2.5 text-sm font-semibold border-b-2 transition-colors -mb-px ${
@@ -327,19 +336,20 @@ export default function AdminPage() {
           ))}
         </div>
 
-        {tab === "pending" && (
+        {loading && <p className="text-sm text-stone-400" style={{ fontFamily: "Arial, sans-serif" }}>Loading…</p>}
+
+        {!loading && tab === "pending" && (
           <div className="flex flex-col gap-3">
-            {pending.length === 0 ? (
-              <p className="text-stone-400 text-sm" style={{ fontFamily: "Arial, sans-serif" }}>No pending submissions. You're all caught up.</p>
-            ) : (
-              pending.map((l) => <AdminRow key={l.id} listing={l} onRefresh={refresh} />)
-            )}
+            {pending.length === 0
+              ? <p className="text-stone-400 text-sm" style={{ fontFamily: "Arial, sans-serif" }}>No pending submissions. You're all caught up.</p>
+              : pending.map(l => <AdminRow key={l.id} listing={l} onRefresh={refresh} />)
+            }
           </div>
         )}
 
-        {tab === "published" && (
+        {!loading && tab === "published" && (
           <div className="flex flex-col gap-3">
-            {published.map((l) => <AdminRow key={l.id} listing={l} onRefresh={refresh} />)}
+            {published.map(l => <AdminRow key={l.id} listing={l} onRefresh={refresh} />)}
           </div>
         )}
 
