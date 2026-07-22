@@ -275,6 +275,21 @@ export default function SubmitPage() {
             />
           </div>
 
+          {/* URL */}
+          <div>
+            <label className="block text-sm font-semibold mb-1.5" style={{ fontFamily: "Arial, sans-serif" }}>
+              More info URL
+            </label>
+            <input
+              type="text"
+              value={form.url}
+              onChange={(e) => set("url", e.target.value)}
+              placeholder="https://yourwebsite.com"
+              className="w-full border border-stone-300 rounded-lg px-3 py-2.5 text-sm"
+              style={{ fontFamily: "Arial, sans-serif" }}
+            />
+          </div>
+
           {/* Tags */}
           <div>
             <label className="block text-sm font-semibold mb-1.5" style={{ fontFamily: "Arial, sans-serif" }}>
