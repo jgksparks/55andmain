@@ -5,6 +5,13 @@ import { type Category } from "@/lib/data";
 
 const CATEGORIES: Category[] = ["Events", "Experiences", "Services", "Groups", "Fundraisers", "Volunteers"];
 
+const TIMES: string[] = [
+  "6:00 AM","6:30 AM","7:00 AM","7:30 AM","8:00 AM","8:30 AM","9:00 AM","9:30 AM",
+  "10:00 AM","10:30 AM","11:00 AM","11:30 AM","12:00 PM","12:30 PM","1:00 PM","1:30 PM",
+  "2:00 PM","2:30 PM","3:00 PM","3:30 PM","4:00 PM","4:30 PM","5:00 PM","5:30 PM",
+  "6:00 PM","6:30 PM","7:00 PM","7:30 PM","8:00 PM","8:30 PM","9:00 PM","9:30 PM",
+];
+
 const SUBCATEGORIES: Record<Category, string[]> = {
   Events: ["Classes", "Lectures", "Music", "Recreation", "Volunteer", "Community Gathering", "Other"],
   Experiences: ["Adventure Days", "Field Quests", "Self-Guided", "Seasonal Challenge", "Other"],
@@ -185,14 +192,12 @@ export default function SubmitPage() {
                 <label className="block text-sm font-semibold mb-1.5" style={{ fontFamily: "Arial, sans-serif" }}>
                   Time
                 </label>
-                <input
-                  type="text"
-                  value={form.time}
-                  onChange={(e) => set("time", e.target.value)}
-                  placeholder="e.g. 10:00 AM"
-                  className="w-full border border-stone-300 rounded-lg px-3 py-2.5 text-sm"
-                  style={{ fontFamily: "Arial, sans-serif" }}
-                />
+                <select value={form.time} onChange={(e) => set("time", e.target.value)}
+                  className="w-full border border-stone-300 rounded-lg px-3 py-2.5 text-sm bg-white"
+                  style={{ fontFamily: "Arial, sans-serif" }}>
+                  <option value="">— select —</option>
+                  {TIMES.map(t => <option key={t}>{t}</option>)}
+                </select>
               </div>
             </div>
           )}

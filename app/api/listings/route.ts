@@ -45,6 +45,7 @@ export async function POST(req: NextRequest) {
   const sb = getServiceClient();
 
   const row = {
+    id: `listing-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
     title: body.title,
     category: body.category,
     subcategory: body.subcategory,

@@ -15,6 +15,12 @@ const SUBCATEGORIES: Record<Category, string[]> = {
 
 const CURATOR_PASSWORD = "frontporch";
 const CITIES = ["Chester", "Deep River", "Essex", "Old Saybrook", "Old Lyme", "Westbrook", "Clinton"];
+const TIMES: string[] = [
+  "6:00 AM","6:30 AM","7:00 AM","7:30 AM","8:00 AM","8:30 AM","9:00 AM","9:30 AM",
+  "10:00 AM","10:30 AM","11:00 AM","11:30 AM","12:00 PM","12:30 PM","1:00 PM","1:30 PM",
+  "2:00 PM","2:30 PM","3:00 PM","3:30 PM","4:00 PM","4:30 PM","5:00 PM","5:30 PM",
+  "6:00 PM","6:30 PM","7:00 PM","7:30 PM","8:00 PM","8:30 PM","9:00 PM","9:30 PM",
+];
 
 type Tab = "published" | "pending" | "add";
 
@@ -205,8 +211,11 @@ function AddForm({ onSuccess }: { onSuccess: () => void }) {
         </div>
         <div>
           <label className="block text-xs font-semibold mb-1" style={{ fontFamily: "Arial, sans-serif" }}>Time</label>
-          <input type="text" value={form.time} onChange={(e) => set("time", e.target.value)} placeholder="2:00 PM"
-            className="w-full border border-stone-300 rounded-lg px-3 py-2 text-sm" style={{ fontFamily: "Arial, sans-serif" }} />
+          <select value={form.time} onChange={(e) => set("time", e.target.value)}
+            className="w-full border border-stone-300 rounded-lg px-3 py-2 text-sm bg-white" style={{ fontFamily: "Arial, sans-serif" }}>
+            <option value="">— select —</option>
+            {TIMES.map(t => <option key={t}>{t}</option>)}
+          </select>
         </div>
       </div>
 
