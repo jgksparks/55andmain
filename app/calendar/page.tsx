@@ -50,35 +50,35 @@ function parseListingTime(s?:string):number|null{
 }
 
 // Generate future occurrence dates for a recurring listing (up to monthsAhead from today)
-function getRecurringDates(l:Listing, monthsAhead=4):string[]{
+function getRecurringDates(l:Listing, fromMonth?:Date, monthsAhead=2):string[]{
   if(!l.recurring||l.recurring==="none")return[];
   const today=new Date(); today.setHours(0,0,0,0);
-  const end=new Date(today); end.setMonth(end.getMonth()+monthsAhead);
+  // Start from the later of today or the beginning of the viewed month
+  const viewStart=fromMonth?new Date(fromMonth.getFullYear(),fromMonth.getMonth(),1):today;
+  const from=viewStart>today?viewStart:today;
+  const end=new Date(viewStart); end.setMonth(end.getMonth()+monthsAhead);
   const fmt=(d:Date)=>toDayKey(d.getFullYear(),d.getMonth(),d.getDate());
   const dates:string[]=[];
 
   if(l.recurring==="weekly"&&l.recurringDay){
     const dayNames=["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
     const target=dayNames.indexOf(l.recurringDay); if(target===-1)return[];
-    const start=l.date?new Date(l.date+"T00:00:00"):new Date(today);
-    const d=new Date(start);
-    // advance to first target weekday on or after start
+    const start=l.date?new Date(l.date+"T00:00:00"):new Date(from);
+    const d=new Date(start<from?from:start);
     while(d.getDay()!==target)d.setDate(d.getDate()+1);
-    // if that first date is before today, jump forward
-    while(d<today)d.setDate(d.getDate()+7);
     while(d<=end){dates.push(fmt(d));d.setDate(d.getDate()+7);}
   } else if(l.recurring==="daily"){
-    const d=new Date(today);
+    const d=new Date(from);
     while(d<=end){dates.push(fmt(d));d.setDate(d.getDate()+1);}
   } else if(l.recurring==="monthly"){
-    const start=l.date?new Date(l.date+"T00:00:00"):new Date(today);
+    const start=l.date?new Date(l.date+"T00:00:00"):new Date(from);
     const d=new Date(start.getFullYear(),start.getMonth(),start.getDate());
-    while(d<today)d.setMonth(d.getMonth()+1);
+    while(d<from)d.setMonth(d.getMonth()+1);
     while(d<=end){dates.push(fmt(d));d.setMonth(d.getMonth()+1);}
   } else if(l.recurring==="annual"){
-    const start=l.date?new Date(l.date+"T00:00:00"):new Date(today);
+    const start=l.date?new Date(l.date+"T00:00:00"):new Date(from);
     const d=new Date(start.getFullYear(),start.getMonth(),start.getDate());
-    while(d<today)d.setFullYear(d.getFullYear()+1);
+    while(d<from)d.setFullYear(d.getFullYear()+1);
     while(d<=end){dates.push(fmt(d));d.setFullYear(d.getFullYear()+1);}
   }
   return dates;
@@ -455,6 +455,8 @@ export default function CalendarPage(){
   function blockUpdate(id:string,s:number,e:number){ setMyTime(id,{start:toHHMM(s),end:toHHMM(e)}); refresh(); }
 
   // ── sidebar ───────────────────────────────────────────────────────────────
+  const viewedMonth=useMemo(()=>new Date(year,month,1),[year,month]);
+
   function renderSidebar(){
     return(
       <div className="w-52 shrink-0 flex flex-col gap-4">
@@ -560,7 +562,7 @@ export default function CalendarPage(){
             <div className="flex flex-col gap-3">
               {recurringItems.map(l=>{
                 const recurLabel:{[k:string]:string}={daily:"Daily",weekly:`Weekly · ${l.recurringDay??""}`,monthly:"Monthly",annual:"Annual"};
-                const upcomingDates=getRecurringDates(l);
+                const upcomingDates=getRecurringDates(l,viewedMonth);
                 const selected=new Set(schedules[l.id]??[]);
                 return(
                   <div key={l.id} className="bg-violet-50 border border-violet-200 rounded-lg p-2.5">
