@@ -577,18 +577,19 @@ export default function CalendarPage(){
                       {upcomingDates.slice(0,24).map(date=>{
                         const on=selected.has(date);
                         return(
-                          <label key={date} className="flex items-center gap-2 cursor-pointer select-none" style={{fontFamily:"Arial,sans-serif"}}>
-                            <span
-                              className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 transition-colors ${on?"bg-[#556B3D] border-[#556B3D]":"border-stone-300 bg-white"}`}
-                              onClick={()=>{
+                          <label key={`${l.id}-${date}`} className="flex items-center gap-2 cursor-pointer select-none" style={{fontFamily:"Arial,sans-serif"}}>
+                            <input
+                              type="checkbox"
+                              checked={on}
+                              onChange={()=>{
                                 if(on){removeScheduleDate(l.id,date);}
                                 else{addScheduleDate(l.id,date);}
                                 setSchedulesState(getSchedules());
                                 refresh();
                               }}
-                            >
-                              {on&&<span className="text-white text-xs font-bold leading-none">✓</span>}
-                            </span>
+                              className="w-4 h-4 cursor-pointer shrink-0"
+                              style={{accentColor:"#556B3D"}}
+                            />
                             <span className="text-xs text-stone-700">{formatDateShort(date)}</span>
                           </label>
                         );
