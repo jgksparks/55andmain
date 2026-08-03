@@ -381,7 +381,7 @@ function RecurringCard({l,schedules,viewedMonth,onUnpin,onToggle}:{
             {upcomingDates.slice(0,24).map(date=>{
               const on=selected.has(date);
               return(
-                <label key={`${l.id}-${date}`} className="flex items-center gap-2 cursor-pointer select-none" style={{fontFamily:"Arial,sans-serif"}}>
+                <label key={l.id+"-"+date} className="flex items-center gap-2 cursor-pointer select-none" style={{fontFamily:"Arial,sans-serif"}}>
                   <input type="checkbox" checked={on}
                     onChange={()=>onToggle(date,on)}
                     className="w-4 h-4 cursor-pointer shrink-0"
@@ -662,7 +662,7 @@ export default function CalendarPage(){
             {DAYS.map(d=><div key={d} className="text-center text-xs font-semibold text-stone-400 py-2" style={{fontFamily:"Arial,sans-serif"}}>{d}</div>)}
           </div>
           <div className="grid grid-cols-7">
-            {Array.from({length:firstDay}).map((_,i)=><div key={`e${i}`} className="min-h-[90px] border-r border-b border-stone-100 bg-stone-50"/>)}
+            {Array.from({length:firstDay}).map((_,i)=><div key={"e"+i} className="min-h-[90px] border-r border-b border-stone-100 bg-stone-50"/>)}
             {Array.from({length:daysInMonth}).map((_,i)=>{
               const day=i+1; const key=toDayKey(year,month,day);
               const events=byDate[key]??[]; const isToday=key===todayKey; const isSel=key===selectedDay; const isDT=key===dragOver;
@@ -763,7 +763,7 @@ export default function CalendarPage(){
               </div>
             ))}
             {hours.map(h=>(
-              <div key={`hh${h}`} className="absolute left-16 right-0 border-t border-dashed border-stone-50 pointer-events-none" style={{top:(h-DAY_START)*HOUR_PX+HOUR_PX/2}}/>
+              <div key={"hh"+h} className="absolute left-16 right-0 border-t border-dashed border-stone-50 pointer-events-none" style={{top:(h-DAY_START)*HOUR_PX+HOUR_PX/2}}/>
             ))}
             {isToday&&nowH>=DAY_START&&nowH<=DAY_END&&(
               <div className="absolute left-0 right-0 flex items-center pointer-events-none z-20" style={{top:(nowH-DAY_START)*HOUR_PX}}>
