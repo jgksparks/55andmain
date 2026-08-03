@@ -10,6 +10,7 @@ export interface Listing {
   description: string;
   date?: string;
   time?: string;
+  timeEnd?: string;
   location: string;
   city: string;
   state: string;

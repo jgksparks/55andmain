@@ -30,6 +30,7 @@ export default function SubmitPage() {
     description: "",
     date: "",
     time: "",
+    timeEnd: "",
     location: "",
     city: "Essex",
     state: "CT",
@@ -190,9 +191,20 @@ export default function SubmitPage() {
               </div>
               <div className="flex-1">
                 <label className="block text-sm font-semibold mb-1.5" style={{ fontFamily: "Arial, sans-serif" }}>
-                  Time
+                  Start Time
                 </label>
                 <select value={form.time} onChange={(e) => set("time", e.target.value)}
+                  className="w-full border border-stone-300 rounded-lg px-3 py-2.5 text-sm bg-white"
+                  style={{ fontFamily: "Arial, sans-serif" }}>
+                  <option value="">— select —</option>
+                  {TIMES.map(t => <option key={t}>{t}</option>)}
+                </select>
+              </div>
+              <div className="flex-1">
+                <label className="block text-sm font-semibold mb-1.5" style={{ fontFamily: "Arial, sans-serif" }}>
+                  End Time
+                </label>
+                <select value={form.timeEnd} onChange={(e) => set("timeEnd", e.target.value)}
                   className="w-full border border-stone-300 rounded-lg px-3 py-2.5 text-sm bg-white"
                   style={{ fontFamily: "Arial, sans-serif" }}>
                   <option value="">— select —</option>

@@ -37,8 +37,138 @@ function Badge({ status }: { status: Status }) {
   );
 }
 
+function EditModal({ listing, onClose, onSave }: { listing: Listing; onClose: () => void; onSave: () => void }) {
+  const [form, setForm] = useState({
+    title: listing.title,
+    category: listing.category,
+    subcategory: listing.subcategory,
+    description: listing.description,
+    date: listing.date ?? "",
+    time: listing.time ?? "",
+    timeEnd: listing.timeEnd ?? "",
+    location: listing.location,
+    city: listing.city,
+    cost: listing.cost,
+    contact: listing.contact ?? "",
+    url: listing.url ?? "",
+  });
+  const [saving, setSaving] = useState(false);
+
+  function set(field: string, value: string) { setForm(f => ({ ...f, [field]: value })); }
+
+  async function handleSave(e: React.FormEvent) {
+    e.preventDefault();
+    setSaving(true);
+    await fetch(`/api/listings/${listing.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(form),
+    });
+    setSaving(false);
+    onSave();
+    onClose();
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-xl max-h-[90vh] overflow-y-auto">
+        <div className="flex items-center justify-between p-5 border-b border-stone-100">
+          <h2 className="text-lg font-bold text-[#233249]">Edit Listing</h2>
+          <button onClick={onClose} className="text-stone-400 hover:text-stone-700 text-xl font-bold">✕</button>
+        </div>
+        <form onSubmit={handleSave} className="p-5 flex flex-col gap-4">
+          <div>
+            <label className="block text-xs font-semibold mb-1" style={{ fontFamily: "Arial, sans-serif" }}>Title *</label>
+            <input required type="text" value={form.title} onChange={e => set("title", e.target.value)}
+              className="w-full border border-stone-300 rounded-lg px-3 py-2 text-sm" style={{ fontFamily: "Arial, sans-serif" }} />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-semibold mb-1" style={{ fontFamily: "Arial, sans-serif" }}>Category</label>
+              <select value={form.category} onChange={e => set("category", e.target.value)}
+                className="w-full border border-stone-300 rounded-lg px-3 py-2 text-sm bg-white" style={{ fontFamily: "Arial, sans-serif" }}>
+                {CATEGORIES.map(c => <option key={c}>{c}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs font-semibold mb-1" style={{ fontFamily: "Arial, sans-serif" }}>Town</label>
+              <select value={form.city} onChange={e => set("city", e.target.value)}
+                className="w-full border border-stone-300 rounded-lg px-3 py-2 text-sm bg-white" style={{ fontFamily: "Arial, sans-serif" }}>
+                {CITIES.map(c => <option key={c}>{c}</option>)}
+              </select>
+            </div>
+          </div>
+          <div>
+            <label className="block text-xs font-semibold mb-1" style={{ fontFamily: "Arial, sans-serif" }}>Description *</label>
+            <textarea required value={form.description} onChange={e => set("description", e.target.value)}
+              rows={3} className="w-full border border-stone-300 rounded-lg px-3 py-2 text-sm resize-y" style={{ fontFamily: "Arial, sans-serif" }} />
+          </div>
+          <div className="grid grid-cols-3 gap-3">
+            <div>
+              <label className="block text-xs font-semibold mb-1" style={{ fontFamily: "Arial, sans-serif" }}>Date</label>
+              <input type="date" value={form.date} onChange={e => set("date", e.target.value)}
+                className="w-full border border-stone-300 rounded-lg px-3 py-2 text-sm" style={{ fontFamily: "Arial, sans-serif" }} />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold mb-1" style={{ fontFamily: "Arial, sans-serif" }}>Start Time</label>
+              <select value={form.time} onChange={e => set("time", e.target.value)}
+                className="w-full border border-stone-300 rounded-lg px-3 py-2 text-sm bg-white" style={{ fontFamily: "Arial, sans-serif" }}>
+                <option value="">—</option>
+                {TIMES.map(t => <option key={t}>{t}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs font-semibold mb-1" style={{ fontFamily: "Arial, sans-serif" }}>End Time</label>
+              <select value={form.timeEnd} onChange={e => set("timeEnd", e.target.value)}
+                className="w-full border border-stone-300 rounded-lg px-3 py-2 text-sm bg-white" style={{ fontFamily: "Arial, sans-serif" }}>
+                <option value="">—</option>
+                {TIMES.map(t => <option key={t}>{t}</option>)}
+              </select>
+            </div>
+          </div>
+          <div>
+            <label className="block text-xs font-semibold mb-1" style={{ fontFamily: "Arial, sans-serif" }}>Location</label>
+            <input type="text" value={form.location} onChange={e => set("location", e.target.value)}
+              className="w-full border border-stone-300 rounded-lg px-3 py-2 text-sm" style={{ fontFamily: "Arial, sans-serif" }} />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-semibold mb-1" style={{ fontFamily: "Arial, sans-serif" }}>Cost</label>
+              <input type="text" value={form.cost} onChange={e => set("cost", e.target.value)}
+                className="w-full border border-stone-300 rounded-lg px-3 py-2 text-sm" style={{ fontFamily: "Arial, sans-serif" }} />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold mb-1" style={{ fontFamily: "Arial, sans-serif" }}>Contact</label>
+              <input type="text" value={form.contact} onChange={e => set("contact", e.target.value)}
+                className="w-full border border-stone-300 rounded-lg px-3 py-2 text-sm" style={{ fontFamily: "Arial, sans-serif" }} />
+            </div>
+          </div>
+          <div>
+            <label className="block text-xs font-semibold mb-1" style={{ fontFamily: "Arial, sans-serif" }}>Website URL</label>
+            <input type="text" value={form.url} onChange={e => set("url", e.target.value)} placeholder="https://"
+              className="w-full border border-stone-300 rounded-lg px-3 py-2 text-sm" style={{ fontFamily: "Arial, sans-serif" }} />
+          </div>
+          <div className="flex gap-3 pt-2">
+            <button type="submit" disabled={saving}
+              className="bg-[#556B3D] text-white px-5 py-2 rounded-lg font-semibold text-sm hover:bg-[#3d5229] transition-colors disabled:opacity-50"
+              style={{ fontFamily: "Arial, sans-serif" }}>
+              {saving ? "Saving…" : "Save Changes"}
+            </button>
+            <button type="button" onClick={onClose}
+              className="text-stone-500 px-5 py-2 rounded-lg font-semibold text-sm hover:bg-stone-100 transition-colors"
+              style={{ fontFamily: "Arial, sans-serif" }}>
+              Cancel
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
 function AdminRow({ listing, onRefresh }: { listing: Listing; onRefresh: () => void }) {
   const [busy, setBusy] = useState(false);
+  const [editing, setEditing] = useState(false);
 
   async function act(updates: Record<string, unknown>) {
     setBusy(true);
@@ -61,59 +191,67 @@ function AdminRow({ listing, onRefresh }: { listing: Listing; onRefresh: () => v
   }
 
   return (
-    <div className="bg-white border border-stone-200 rounded-xl p-4 flex flex-col sm:flex-row sm:items-start gap-3">
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2 mb-1 flex-wrap">
-          <Badge status={listing.status} />
-          <span className="text-xs text-stone-400" style={{ fontFamily: "Arial, sans-serif" }}>
-            {listing.category} · {listing.subcategory}
-          </span>
-          {listing.submittedBy === "community" && (
-            <span className="text-xs bg-blue-50 text-blue-700 px-2 py-0.5 rounded-full" style={{ fontFamily: "Arial, sans-serif" }}>
-              community submission
+    <>
+      {editing && <EditModal listing={listing} onClose={() => setEditing(false)} onSave={onRefresh} />}
+      <div className="bg-white border border-stone-200 rounded-xl p-4 flex flex-col sm:flex-row sm:items-start gap-3">
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 mb-1 flex-wrap">
+            <Badge status={listing.status} />
+            <span className="text-xs text-stone-400" style={{ fontFamily: "Arial, sans-serif" }}>
+              {listing.category} · {listing.subcategory}
             </span>
-          )}
+            {listing.submittedBy === "community" && (
+              <span className="text-xs bg-blue-50 text-blue-700 px-2 py-0.5 rounded-full" style={{ fontFamily: "Arial, sans-serif" }}>
+                community submission
+              </span>
+            )}
+          </div>
+          <h3 className="font-bold text-stone-900 text-sm leading-snug">{listing.title}</h3>
+          <p className="text-xs text-stone-500 mt-0.5" style={{ fontFamily: "Arial, sans-serif" }}>
+            📍 {listing.location}, {listing.city}, {listing.state}
+            {listing.date && ` · 📅 ${listing.date}`}
+            {listing.cost && ` · ${listing.cost}`}
+          </p>
+          <p className="text-xs text-stone-500 mt-1 line-clamp-2" style={{ fontFamily: "Arial, sans-serif" }}>
+            {listing.description}
+          </p>
         </div>
-        <h3 className="font-bold text-stone-900 text-sm leading-snug">{listing.title}</h3>
-        <p className="text-xs text-stone-500 mt-0.5" style={{ fontFamily: "Arial, sans-serif" }}>
-          📍 {listing.location}, {listing.city}, {listing.state}
-          {listing.date && ` · 📅 ${listing.date}`}
-          {listing.cost && ` · ${listing.cost}`}
-        </p>
-        <p className="text-xs text-stone-500 mt-1 line-clamp-2" style={{ fontFamily: "Arial, sans-serif" }}>
-          {listing.description}
-        </p>
-      </div>
 
-      <div className="flex gap-2 flex-wrap sm:flex-col sm:items-end shrink-0">
-        {listing.status !== "published" && (
-          <button disabled={busy} onClick={() => act({ status: "published" })}
-            className="text-xs bg-green-600 text-white px-3 py-1.5 rounded-lg font-semibold hover:bg-green-700 transition-colors"
+        <div className="flex gap-2 flex-wrap sm:flex-col sm:items-end shrink-0">
+          <button disabled={busy} onClick={() => setEditing(true)}
+            className="text-xs bg-[#233249] text-white px-3 py-1.5 rounded-lg font-semibold hover:bg-[#1a2538] transition-colors"
             style={{ fontFamily: "Arial, sans-serif" }}>
-            Publish
+            ✏️ Edit
           </button>
-        )}
-        {listing.status !== "pending" && (
-          <button disabled={busy} onClick={() => act({ status: "pending" })}
-            className="text-xs bg-amber-500 text-white px-3 py-1.5 rounded-lg font-semibold hover:bg-amber-600 transition-colors"
+          {listing.status !== "published" && (
+            <button disabled={busy} onClick={() => act({ status: "published" })}
+              className="text-xs bg-green-600 text-white px-3 py-1.5 rounded-lg font-semibold hover:bg-green-700 transition-colors"
+              style={{ fontFamily: "Arial, sans-serif" }}>
+              Publish
+            </button>
+          )}
+          {listing.status !== "pending" && (
+            <button disabled={busy} onClick={() => act({ status: "pending" })}
+              className="text-xs bg-amber-500 text-white px-3 py-1.5 rounded-lg font-semibold hover:bg-amber-600 transition-colors"
+              style={{ fontFamily: "Arial, sans-serif" }}>
+              Unpublish
+            </button>
+          )}
+          {listing.status !== "rejected" && (
+            <button disabled={busy} onClick={() => act({ status: "rejected" })}
+              className="text-xs bg-stone-200 text-stone-700 px-3 py-1.5 rounded-lg font-semibold hover:bg-stone-300 transition-colors"
+              style={{ fontFamily: "Arial, sans-serif" }}>
+              Reject
+            </button>
+          )}
+          <button disabled={busy} onClick={remove}
+            className="text-xs text-red-600 hover:text-red-800 px-1 py-1"
             style={{ fontFamily: "Arial, sans-serif" }}>
-            Unpublish
+            Delete
           </button>
-        )}
-        {listing.status !== "rejected" && (
-          <button disabled={busy} onClick={() => act({ status: "rejected" })}
-            className="text-xs bg-stone-200 text-stone-700 px-3 py-1.5 rounded-lg font-semibold hover:bg-stone-300 transition-colors"
-            style={{ fontFamily: "Arial, sans-serif" }}>
-            Reject
-          </button>
-        )}
-        <button disabled={busy} onClick={remove}
-          className="text-xs text-red-600 hover:text-red-800 px-1 py-1"
-          style={{ fontFamily: "Arial, sans-serif" }}>
-          Delete
-        </button>
+        </div>
       </div>
-    </div>
+    </>
   );
 }
 
@@ -122,7 +260,7 @@ function AddForm({ onSuccess }: { onSuccess: () => void }) {
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({
     title: "", subcategory: SUBCATEGORIES["Events"][0], description: "",
-    date: "", time: "", location: "", city: "Chester", state: "CT",
+    date: "", time: "", timeEnd: "", location: "", city: "Chester", state: "CT",
     cost: "Free", contact: "", url: "", tags: "",
   });
   const [seniorDiscount, setSeniorDiscount] = useState(false);
@@ -149,7 +287,7 @@ function AddForm({ onSuccess }: { onSuccess: () => void }) {
     setSaving(false);
     onSuccess();
     setSeniorDiscount(false);
-    setForm({ title: "", subcategory: SUBCATEGORIES[category][0], description: "", date: "", time: "", location: "", city: "Chester", state: "CT", cost: "Free", contact: "", url: "", tags: "" });
+    setForm({ title: "", subcategory: SUBCATEGORIES[category][0], description: "", date: "", time: "", timeEnd: "", location: "", city: "Chester", state: "CT", cost: "Free", contact: "", url: "", tags: "" });
   }
 
   return (
@@ -203,15 +341,23 @@ function AddForm({ onSuccess }: { onSuccess: () => void }) {
           rows={3} className="w-full border border-stone-300 rounded-lg px-3 py-2 text-sm resize-y" style={{ fontFamily: "Arial, sans-serif" }} />
       </div>
 
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-3 gap-3">
         <div>
           <label className="block text-xs font-semibold mb-1" style={{ fontFamily: "Arial, sans-serif" }}>Date</label>
           <input type="date" value={form.date} onChange={(e) => set("date", e.target.value)}
             className="w-full border border-stone-300 rounded-lg px-3 py-2 text-sm" style={{ fontFamily: "Arial, sans-serif" }} />
         </div>
         <div>
-          <label className="block text-xs font-semibold mb-1" style={{ fontFamily: "Arial, sans-serif" }}>Time</label>
+          <label className="block text-xs font-semibold mb-1" style={{ fontFamily: "Arial, sans-serif" }}>Start Time</label>
           <select value={form.time} onChange={(e) => set("time", e.target.value)}
+            className="w-full border border-stone-300 rounded-lg px-3 py-2 text-sm bg-white" style={{ fontFamily: "Arial, sans-serif" }}>
+            <option value="">— select —</option>
+            {TIMES.map(t => <option key={t}>{t}</option>)}
+          </select>
+        </div>
+        <div>
+          <label className="block text-xs font-semibold mb-1" style={{ fontFamily: "Arial, sans-serif" }}>End Time</label>
+          <select value={form.timeEnd} onChange={(e) => set("timeEnd", e.target.value)}
             className="w-full border border-stone-300 rounded-lg px-3 py-2 text-sm bg-white" style={{ fontFamily: "Arial, sans-serif" }}>
             <option value="">— select —</option>
             {TIMES.map(t => <option key={t}>{t}</option>)}

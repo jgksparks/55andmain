@@ -9,6 +9,17 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   const updates: Record<string, unknown> = {};
   if (body.status !== undefined) updates.status = body.status;
   if (body.title !== undefined) updates.title = body.title;
+  if (body.category !== undefined) updates.category = body.category;
+  if (body.subcategory !== undefined) updates.subcategory = body.subcategory;
+  if (body.description !== undefined) updates.description = body.description;
+  if (body.date !== undefined) updates.date = body.date || null;
+  if (body.time !== undefined) updates.time = body.time || null;
+  if (body.timeEnd !== undefined) updates.time_end = body.timeEnd || null;
+  if (body.location !== undefined) updates.location = body.location;
+  if (body.city !== undefined) updates.city = body.city;
+  if (body.cost !== undefined) updates.cost = body.cost;
+  if (body.contact !== undefined) updates.contact = body.contact || null;
+  if (body.url !== undefined) updates.url = body.url || null;
   if (body.seniorDiscount !== undefined) updates.senior_discount = body.seniorDiscount;
 
   const { error } = await sb.from("listings").update(updates).eq("id", id);
