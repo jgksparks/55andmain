@@ -372,13 +372,13 @@ function AddForm({ onSuccess }: { onSuccess: () => void }) {
           <select value={form.recurring} onChange={(e) => set("recurring", e.target.value)}
             className="w-full border border-stone-300 rounded-lg px-3 py-2 text-sm bg-white" style={{ fontFamily: "Arial, sans-serif" }}>
             <option value="none">One-time</option>
+            <option value="daily">Daily</option>
             <option value="weekly">Weekly</option>
-            <option value="biweekly">Bi-weekly</option>
             <option value="monthly">Monthly</option>
-            <option value="seasonal">Seasonal</option>
+            <option value="annual">Annual</option>
           </select>
         </div>
-        {(form.recurring === "weekly" || form.recurring === "biweekly") && (
+        {form.recurring === "weekly" && (
           <div>
             <label className="block text-xs font-semibold mb-1" style={{ fontFamily: "Arial, sans-serif" }}>Day of Week</label>
             <select value={form.recurringDay} onChange={(e) => set("recurringDay", e.target.value)}

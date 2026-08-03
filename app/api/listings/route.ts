@@ -12,7 +12,7 @@ function toListing(row: Record<string, unknown>) {
     date: row.date ?? undefined,
     time: row.time ?? undefined,
     timeEnd: row.time_end ?? undefined,
-    recurring: (row.recurring as "none" | "weekly" | "biweekly" | "monthly" | "seasonal") ?? "none",
+    recurring: (row.recurring as "none" | "daily" | "weekly" | "monthly" | "annual") ?? "none",
     recurringDay: row.recurring_day ?? undefined,
     location: row.location,
     city: row.city,

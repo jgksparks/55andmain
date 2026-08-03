@@ -23,10 +23,10 @@ const categoryIcons: Record<string, string> = {
 };
 
 const recurringLabels: Record<string, string> = {
-  weekly:   "🔄 Weekly",
-  biweekly: "🔄 Bi-weekly",
-  monthly:  "🔄 Monthly",
-  seasonal: "🔄 Seasonal",
+  daily:   "🔄 Daily",
+  weekly:  "🔄 Weekly",
+  monthly: "🔄 Monthly",
+  annual:  "🔄 Annual",
 };
 
 const dayToRRule: Record<string, string> = {
@@ -78,13 +78,13 @@ function buildICS(listing: Listing): string {
 
   let rrule = "";
   if (listing.recurring && listing.recurring !== "none") {
-    if (listing.recurring === "weekly" && listing.recurringDay && dayToRRule[listing.recurringDay]) {
+    if (listing.recurring === "daily") {
+      rrule = `RRULE:FREQ=DAILY`;
+    } else if (listing.recurring === "weekly" && listing.recurringDay && dayToRRule[listing.recurringDay]) {
       rrule = `RRULE:FREQ=WEEKLY;BYDAY=${dayToRRule[listing.recurringDay]}`;
-    } else if (listing.recurring === "biweekly" && listing.recurringDay && dayToRRule[listing.recurringDay]) {
-      rrule = `RRULE:FREQ=WEEKLY;INTERVAL=2;BYDAY=${dayToRRule[listing.recurringDay]}`;
     } else if (listing.recurring === "monthly") {
       rrule = `RRULE:FREQ=MONTHLY`;
-    } else if (listing.recurring === "seasonal") {
+    } else if (listing.recurring === "annual") {
       rrule = `RRULE:FREQ=YEARLY`;
     }
   }
