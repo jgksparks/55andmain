@@ -320,7 +320,7 @@ function AllDayRow({listing,myTime,onUpdate,onRemoveFromDay,onUnpin}:{
       <div className="min-w-0">
         <p className="font-bold text-stone-800 truncate">{listing.title}</p>
         <p className="opacity-60 mt-0.5 truncate" style={{fontFamily:"Arial,sans-serif"}}>
-          {myTime?`My Plan: ${formatHHMM(myTime.start)} – ${formatHHMM(myTime.end)}`:listing.time?`Event: ${listing.time}`:"📍 "+listing.location}
+          {myTime?"My Plan: "+formatHHMM(myTime.start)+" - "+formatHHMM(myTime.end):listing.time?"Event: "+listing.time:"📍 "+listing.location}
         </p>
       </div>
       <span className="text-stone-400 shrink-0">{open?"▲":"▼"}</span>
@@ -347,12 +347,12 @@ function RecurringCard({l,schedules,viewedMonth,onUnpin,onToggle}:{
 
   const recurLabel:{[k:string]:string}={
     daily:"Daily",
-    weekly:`Weekly${l.recurringDay?" · "+l.recurringDay:""}`,
+    weekly:"Weekly"+(l.recurringDay?" - "+l.recurringDay:""),
     monthly:"Monthly",
     annual:"Annual",
   };
-  const timeLabel=l.time?` · ${l.time}`:"";
-  const endLabel=l.recurringEnd?` · ends ${formatDateShort(l.recurringEnd)}`:""`;
+  const timeLabel=l.time?" - "+l.time:"";
+  const endLabel=l.recurringEnd?" - ends "+formatDateShort(l.recurringEnd):"";
   const upcomingDates=getRecurringDates(l,viewedMonth);
 
   return(
@@ -609,7 +609,7 @@ export default function CalendarPage(){
                     <p className="text-xs font-semibold text-stone-800 leading-snug">{l.title}</p>
                     <p className="text-xs text-blue-600 mt-0.5" style={{fontFamily:"Arial,sans-serif"}}>
                       {formatDateShort(l.date!)}
-                      {mt?` · My Plan: ${formatHHMM(mt.start)}–${formatHHMM(mt.end)}`:l.time?` · ${l.time}`:""}
+                      {mt?" - My Plan: "+formatHHMM(mt.start)+" - "+formatHHMM(mt.end):l.time?" - "+l.time:""}
                     </p>
                     <button onClick={()=>unpin(l.id)} className="text-xs text-red-400 hover:text-red-600 mt-1" style={{fontFamily:"Arial,sans-serif"}}>Remove</button>
                   </div>
@@ -700,7 +700,7 @@ export default function CalendarPage(){
                   <div>
                     <p className="font-bold">{l.title}</p>
                     <p className="text-stone-500 mt-0.5" style={{fontFamily:"Arial,sans-serif"}}>
-                      {mt?`My Plan: ${formatHHMM(mt.start)}–${formatHHMM(mt.end)}`:l.time?`🕐 ${l.time}`:"All day"}{" · "}📍 {l.location}
+                      {mt?"My Plan: "+formatHHMM(mt.start)+" - "+formatHHMM(mt.end):l.time?"🕐 "+l.time:"All day"}{" - "}📍 {l.location}
                     </p>
                   </div>
                   <div className="flex flex-col gap-1 shrink-0" style={{fontFamily:"Arial,sans-serif"}}>
