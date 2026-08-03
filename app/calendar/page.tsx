@@ -49,6 +49,41 @@ function parseListingTime(s?:string):number|null{
   return h+min/60;
 }
 
+// Generate future occurrence dates for a recurring listing (up to monthsAhead from today)
+function getRecurringDates(l:Listing, monthsAhead=4):string[]{
+  if(!l.recurring||l.recurring==="none")return[];
+  const today=new Date(); today.setHours(0,0,0,0);
+  const end=new Date(today); end.setMonth(end.getMonth()+monthsAhead);
+  const fmt=(d:Date)=>toDayKey(d.getFullYear(),d.getMonth(),d.getDate());
+  const dates:string[]=[];
+
+  if(l.recurring==="weekly"&&l.recurringDay){
+    const dayNames=["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+    const target=dayNames.indexOf(l.recurringDay); if(target===-1)return[];
+    const start=l.date?new Date(l.date+"T00:00:00"):new Date(today);
+    const d=new Date(start);
+    // advance to first target weekday on or after start
+    while(d.getDay()!==target)d.setDate(d.getDate()+1);
+    // if that first date is before today, jump forward
+    while(d<today)d.setDate(d.getDate()+7);
+    while(d<=end){dates.push(fmt(d));d.setDate(d.getDate()+7);}
+  } else if(l.recurring==="daily"){
+    const d=new Date(today);
+    while(d<=end){dates.push(fmt(d));d.setDate(d.getDate()+1);}
+  } else if(l.recurring==="monthly"){
+    const start=l.date?new Date(l.date+"T00:00:00"):new Date(today);
+    const d=new Date(start.getFullYear(),start.getMonth(),start.getDate());
+    while(d<today)d.setMonth(d.getMonth()+1);
+    while(d<=end){dates.push(fmt(d));d.setMonth(d.getMonth()+1);}
+  } else if(l.recurring==="annual"){
+    const start=l.date?new Date(l.date+"T00:00:00"):new Date(today);
+    const d=new Date(start.getFullYear(),start.getMonth(),start.getDate());
+    while(d<today)d.setFullYear(d.getFullYear()+1);
+    while(d<=end){dates.push(fmt(d));d.setFullYear(d.getFullYear()+1);}
+  }
+  return dates;
+}
+
 // Default block: use listing's own time if available (1h window), else null (all-day)
 function resolveBlock(l:Listing,mt:MyTime|null):{start:number;end:number}|null{
   if(mt) return{start:parseHHMM(mt.start),end:parseHHMM(mt.end)};
@@ -357,12 +392,14 @@ export default function CalendarPage(){
   },[tick]);
 
   const allPinned=useMemo(()=>pinnedIds.map(id=>listingMap[id]).filter((l):l is Listing=>!!l),[pinnedIds,listingMap]);
-  const fixedDateItems=allPinned.filter(l=>!!l.date);
-  const undated=allPinned.filter(l=>!l.date);
+  const recurringItems=allPinned.filter(l=>!!l.recurring&&l.recurring!=="none");
+  const nonRecurring=allPinned.filter(l=>!l.recurring||l.recurring==="none");
+  const fixedDateItems=nonRecurring.filter(l=>!!l.date);
+  const undated=nonRecurring.filter(l=>!l.date);
   const unscheduled=undated.filter(l=>!isScheduled(l.id));
   const scheduled  =undated.filter(l=>isScheduled(l.id));
 
-  // Build byDate from multi-date schedules
+  // Build byDate: fixed-date events, manually-scheduled undated events, and recurring auto-dates
   const byDate=useMemo(()=>{
     const map:Record<string,Listing[]>={};
     for(const l of fixedDateItems){
@@ -375,8 +412,15 @@ export default function CalendarPage(){
         if(!map[date].find(x=>x.id===l.id)) map[date].push(l);
       }
     }
+    for(const l of recurringItems){
+      const dates=getRecurringDates(l);
+      for(const date of dates){
+        if(!map[date])map[date]=[];
+        if(!map[date].find(x=>x.id===l.id)) map[date].push(l);
+      }
+    }
     return map;
-  },[fixedDateItems,undated,schedules]);
+  },[fixedDateItems,undated,recurringItems,schedules]);
 
   const todayKey=toTodayKey();
   const daysInMonth=getDaysInMonth(year,month);
@@ -501,6 +545,29 @@ export default function CalendarPage(){
                       {mt?` · My Plan: ${formatHHMM(mt.start)}–${formatHHMM(mt.end)}`:l.time?` · ${l.time}`:""}
                     </p>
                     <button onClick={()=>unpin(l.id)} className="text-xs text-red-400 hover:text-red-600 mt-1" style={{fontFamily:"Arial,sans-serif"}}>Remove</button>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* Recurring saved events */}
+        {recurringItems.length>0&&(
+          <div>
+            <p className="text-xs font-bold text-stone-500 uppercase tracking-wide mb-2" style={{fontFamily:"Arial,sans-serif"}}>Repeating</p>
+            <div className="flex flex-col gap-2">
+              {recurringItems.map(l=>{
+                const recurLabel:{[k:string]:string}={daily:"Daily",weekly:`Weekly · ${l.recurringDay??""}`,monthly:"Monthly",annual:"Annual"};
+                return(
+                  <div key={l.id} className="bg-violet-50 border border-violet-200 rounded-lg p-2.5">
+                    <div className="flex items-center gap-1.5 mb-0.5">
+                      <span className="w-2 h-2 rounded-full shrink-0" style={{background:CAT[l.category]?.bar??"#888"}}/>
+                      <span className="text-xs text-stone-400" style={{fontFamily:"Arial,sans-serif"}}>{l.subcategory}</span>
+                    </div>
+                    <p className="text-xs font-semibold text-stone-800 leading-snug">{l.title}</p>
+                    <p className="text-xs text-violet-600 mt-0.5" style={{fontFamily:"Arial,sans-serif"}}>🔄 {recurLabel[l.recurring!]??l.recurring}</p>
+                    <button onClick={()=>unpin(l.id)} className="text-xs text-red-400 hover:text-red-600 mt-1" style={{fontFamily:"Arial,sans-serif"}}>Remove from saved</button>
                   </div>
                 );
               })}
