@@ -10,7 +10,7 @@ import {
   getMyTimes, setMyTime, clearMyTime,
   parseHHMM, toHHMM, formatHHMM, type MyTime,
 } from "@/lib/mytimes";
-import { getListing, type Listing } from "@/lib/data";
+import { type Listing } from "@/lib/data";
 
 // ── constants ────────────────────────────────────────────────────────────────
 const DAYS      = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
@@ -328,6 +328,7 @@ export default function CalendarPage(){
   const [view,setView]=useState<ViewMode>("month");
   const [selectedDay,setSelectedDay]=useState(toTodayKey());
   const [pinnedIds,setPinnedIds]=useState<string[]>([]);
+  const [listingMap,setListingMap]=useState<Record<string,Listing>>({});
   const [schedules,setSchedulesState]=useState<Record<string,string[]>>({});
   const [myTimes,setMyTimesState]=useState<Record<string,MyTime>>({});
   const [dragOver,setDragOver]=useState<string|null>(null);
@@ -340,12 +341,22 @@ export default function CalendarPage(){
   const refresh=useCallback(()=>setTick(t=>t+1),[]);
 
   useEffect(()=>{
-    setPinnedIds(getPins());
+    const ids=getPins();
+    setPinnedIds(ids);
     setSchedulesState(getSchedules());
     setMyTimesState(getMyTimes());
+    // Fetch all published listings and build a lookup map
+    fetch("/api/listings?status=published")
+      .then(r=>r.json())
+      .then((listings:Listing[])=>{
+        const map:Record<string,Listing>={};
+        for(const l of listings) map[l.id]=l;
+        setListingMap(map);
+      })
+      .catch(()=>{});
   },[tick]);
 
-  const allPinned=useMemo(()=>pinnedIds.map(id=>getListing(id)).filter((l):l is Listing=>!!l),[pinnedIds]);
+  const allPinned=useMemo(()=>pinnedIds.map(id=>listingMap[id]).filter((l):l is Listing=>!!l),[pinnedIds,listingMap]);
   const fixedDateItems=allPinned.filter(l=>!!l.date);
   const undated=allPinned.filter(l=>!l.date);
   const unscheduled=undated.filter(l=>!isScheduled(l.id));
