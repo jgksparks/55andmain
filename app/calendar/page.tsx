@@ -370,7 +370,7 @@ function RecurringCard({l,schedules,viewedMonth,onUnpin,onToggle}:{
           <button onClick={()=>setExpanded(v=>!v)}
             className="text-xs text-[#556B3D] font-semibold hover:underline shrink-0"
             style={{fontFamily:"Arial,sans-serif"}}>
-            {expanded?"hide":`${selectedCount} date${selectedCount!==1?"s":""} - more`}
+            {expanded ? "hide" : (selectedCount + (selectedCount!==1?" dates":" date") + " - more")}
           </button>
         )}
       </div>
