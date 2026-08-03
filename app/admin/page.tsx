@@ -262,7 +262,7 @@ function AddForm({ onSuccess }: { onSuccess: () => void }) {
     title: "", subcategory: SUBCATEGORIES["Events"][0], description: "",
     date: "", time: "", timeEnd: "", location: "", city: "Chester", state: "CT",
     cost: "Free", contact: "", url: "", tags: "",
-    recurring: "none", recurringDay: "",
+    recurring: "none", recurringDay: "", recurringEnd: "",
   });
   const [seniorDiscount, setSeniorDiscount] = useState(false);
 
@@ -288,7 +288,7 @@ function AddForm({ onSuccess }: { onSuccess: () => void }) {
     setSaving(false);
     onSuccess();
     setSeniorDiscount(false);
-    setForm({ title: "", subcategory: SUBCATEGORIES[category][0], description: "", date: "", time: "", timeEnd: "", location: "", city: "Chester", state: "CT", cost: "Free", contact: "", url: "", tags: "", recurring: "none", recurringDay: "" });
+    setForm({ title: "", subcategory: SUBCATEGORIES[category][0], description: "", date: "", time: "", timeEnd: "", location: "", city: "Chester", state: "CT", cost: "Free", contact: "", url: "", tags: "", recurring: "none", recurringDay: "", recurringEnd: "" });
   }
 
   return (
@@ -389,6 +389,13 @@ function AddForm({ onSuccess }: { onSuccess: () => void }) {
           </div>
         )}
       </div>
+      {form.recurring !== "none" && (
+        <div>
+          <label className="block text-xs font-semibold mb-1" style={{ fontFamily: "Arial, sans-serif" }}>Repeats Until <span className="font-normal text-stone-400">(optional)</span></label>
+          <input type="date" value={form.recurringEnd} onChange={(e) => set("recurringEnd", e.target.value)}
+            className="w-full border border-stone-300 rounded-lg px-3 py-2 text-sm" style={{ fontFamily: "Arial, sans-serif" }} />
+        </div>
+      )}
 
       <div>
         <label className="block text-xs font-semibold mb-1" style={{ fontFamily: "Arial, sans-serif" }}>Location *</label>

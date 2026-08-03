@@ -13,6 +13,7 @@ export interface Listing {
   timeEnd?: string;
   recurring?: "none" | "daily" | "weekly" | "monthly" | "annual";
   recurringDay?: string;
+  recurringEnd?: string;
   location: string;
   city: string;
   state: string;

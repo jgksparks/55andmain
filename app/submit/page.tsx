@@ -40,6 +40,7 @@ export default function SubmitPage() {
     tags: "",
     recurring: "none",
     recurringDay: "",
+    recurringEnd: "",
   });
   const [seniorDiscount, setSeniorDiscount] = useState(false);
 
@@ -241,6 +242,13 @@ export default function SubmitPage() {
               </div>
             )}
           </div>
+          {form.recurring !== "none" && (
+            <div>
+              <label className="block text-sm font-semibold mb-1.5" style={{ fontFamily: "Arial, sans-serif" }}>Repeats Until <span className="font-normal text-stone-400">(optional)</span></label>
+              <input type="date" value={form.recurringEnd} onChange={(e) => set("recurringEnd", e.target.value)}
+                className="w-full border border-stone-300 rounded-lg px-3 py-2.5 text-sm" style={{ fontFamily: "Arial, sans-serif" }} />
+            </div>
+          )}
 
           {/* Location */}
           <div>

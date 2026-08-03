@@ -23,6 +23,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   if (body.seniorDiscount !== undefined) updates.senior_discount = body.seniorDiscount;
   if (body.recurring !== undefined) updates.recurring = body.recurring;
   if (body.recurringDay !== undefined) updates.recurring_day = body.recurringDay || null;
+  if (body.recurringEnd !== undefined) updates.recurring_end = body.recurringEnd || null;
 
   const { error } = await sb.from("listings").update(updates).eq("id", id);
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });

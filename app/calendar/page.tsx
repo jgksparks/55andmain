@@ -56,7 +56,8 @@ function getRecurringDates(l:Listing, fromMonth?:Date, monthsAhead=2):string[]{
   // Start from the later of today or the beginning of the viewed month
   const viewStart=fromMonth?new Date(fromMonth.getFullYear(),fromMonth.getMonth(),1):today;
   const from=viewStart>today?viewStart:today;
-  const end=new Date(viewStart); end.setMonth(end.getMonth()+monthsAhead);
+  const defaultEnd=new Date(viewStart); defaultEnd.setMonth(defaultEnd.getMonth()+monthsAhead);
+  const end=l.recurringEnd ? new Date(Math.min(new Date(l.recurringEnd+"T00:00:00").getTime(), defaultEnd.getTime())) : defaultEnd;
   const fmt=(d:Date)=>toDayKey(d.getFullYear(),d.getMonth(),d.getDate());
   const dates:string[]=[];
 
@@ -351,6 +352,7 @@ function RecurringCard({l,schedules,viewedMonth,onUnpin,onToggle}:{
     annual:"Annual",
   };
   const timeLabel=l.time?` · ${l.time}`:"";
+  const endLabel=l.recurringEnd?` · ends ${formatDateShort(l.recurringEnd)}`:""`;
   const upcomingDates=getRecurringDates(l,viewedMonth);
 
   return(
@@ -362,7 +364,7 @@ function RecurringCard({l,schedules,viewedMonth,onUnpin,onToggle}:{
       <p className="text-xs font-semibold text-stone-800 leading-snug mb-1">{l.title}</p>
       <div className="flex items-center justify-between gap-1 mb-1">
         <p className="text-xs text-violet-600" style={{fontFamily:"Arial,sans-serif"}}>
-          🔄 {recurLabel[l.recurring!]??l.recurring}{timeLabel}
+          🔄 {recurLabel[l.recurring!]??l.recurring}{timeLabel}{endLabel}
         </p>
         {selectedCount>0&&(
           <button onClick={()=>setExpanded(v=>!v)}
