@@ -335,6 +335,68 @@ function AllDayRow({listing,myTime,onUpdate,onRemoveFromDay,onUnpin}:{
   );
 }
 
+// ── RecurringCard — one pinned recurring event in the sidebar ─────────────────
+function RecurringCard({l,schedules,viewedMonth,onUnpin,onToggle}:{
+  l:Listing; schedules:Record<string,string[]>; viewedMonth:Date;
+  onUnpin:()=>void; onToggle:(date:string,on:boolean)=>void;
+}){
+  const selected=new Set(schedules[l.id]??[]);
+  const selectedCount=selected.size;
+  const [expanded,setExpanded]=useState(selectedCount===0); // open by default until user picks
+
+  const recurLabel:{[k:string]:string}={
+    daily:"Daily",
+    weekly:`Weekly${l.recurringDay?" · "+l.recurringDay:""}`,
+    monthly:"Monthly",
+    annual:"Annual",
+  };
+  const timeLabel=l.time?` · ${l.time}`:"";
+  const upcomingDates=getRecurringDates(l,viewedMonth);
+
+  return(
+    <div className="bg-violet-50 border border-violet-200 rounded-lg p-2.5">
+      <div className="flex items-center gap-1.5 mb-0.5">
+        <span className="w-2 h-2 rounded-full shrink-0" style={{background:CAT[l.category]?.bar??"#888"}}/>
+        <span className="text-xs text-stone-400" style={{fontFamily:"Arial,sans-serif"}}>{l.subcategory}</span>
+      </div>
+      <p className="text-xs font-semibold text-stone-800 leading-snug mb-1">{l.title}</p>
+      <div className="flex items-center justify-between gap-1 mb-1">
+        <p className="text-xs text-violet-600" style={{fontFamily:"Arial,sans-serif"}}>
+          🔄 {recurLabel[l.recurring!]??l.recurring}{timeLabel}
+        </p>
+        {selectedCount>0&&(
+          <button onClick={()=>setExpanded(v=>!v)}
+            className="text-xs text-[#556B3D] font-semibold hover:underline shrink-0"
+            style={{fontFamily:"Arial,sans-serif"}}>
+            {expanded?`hide`:`${selectedCount} date${selectedCount!==1?"s":""} · more`}
+          </button>
+        )}
+      </div>
+      {expanded&&(
+        <>
+          <p className="text-xs font-semibold text-stone-500 mb-1" style={{fontFamily:"Arial,sans-serif"}}>Add to my calendar:</p>
+          <div className="flex flex-col gap-1 max-h-40 overflow-y-auto pr-1">
+            {upcomingDates.slice(0,24).map(date=>{
+              const on=selected.has(date);
+              return(
+                <label key={`${l.id}-${date}`} className="flex items-center gap-2 cursor-pointer select-none" style={{fontFamily:"Arial,sans-serif"}}>
+                  <input type="checkbox" checked={on}
+                    onChange={()=>onToggle(date,on)}
+                    className="w-4 h-4 cursor-pointer shrink-0"
+                    style={{accentColor:"#556B3D"}}
+                  />
+                  <span className="text-xs text-stone-700">{formatDateShort(date)}</span>
+                </label>
+              );
+            })}
+          </div>
+        </>
+      )}
+      <button onClick={onUnpin} className="text-xs text-red-400 hover:text-red-600 mt-2 block" style={{fontFamily:"Arial,sans-serif"}}>Remove from saved</button>
+    </div>
+  );
+}
+
 // ── Add Date picker ───────────────────────────────────────────────────────────
 function AddDatePicker({onAdd,onClose}:{onAdd:(date:string)=>void;onClose:()=>void}){
   const [date,setDate]=useState("");
@@ -560,45 +622,17 @@ export default function CalendarPage(){
           <div>
             <p className="text-xs font-bold text-stone-500 uppercase tracking-wide mb-2" style={{fontFamily:"Arial,sans-serif"}}>Repeating</p>
             <div className="flex flex-col gap-3">
-              {recurringItems.map(l=>{
-                const recurLabel:{[k:string]:string}={daily:"Daily",weekly:`Weekly · ${l.recurringDay??""}`,monthly:"Monthly",annual:"Annual"};
-                const upcomingDates=getRecurringDates(l,viewedMonth);
-                const selected=new Set(schedules[l.id]??[]);
-                return(
-                  <div key={l.id} className="bg-violet-50 border border-violet-200 rounded-lg p-2.5">
-                    <div className="flex items-center gap-1.5 mb-0.5">
-                      <span className="w-2 h-2 rounded-full shrink-0" style={{background:CAT[l.category]?.bar??"#888"}}/>
-                      <span className="text-xs text-stone-400" style={{fontFamily:"Arial,sans-serif"}}>{l.subcategory}</span>
-                    </div>
-                    <p className="text-xs font-semibold text-stone-800 leading-snug mb-1">{l.title}</p>
-                    <p className="text-xs text-violet-600 mb-2" style={{fontFamily:"Arial,sans-serif"}}>🔄 {recurLabel[l.recurring!]??l.recurring}</p>
-                    <p className="text-xs font-semibold text-stone-500 mb-1" style={{fontFamily:"Arial,sans-serif"}}>Add to my calendar:</p>
-                    <div className="flex flex-col gap-1 max-h-40 overflow-y-auto pr-1">
-                      {upcomingDates.slice(0,24).map(date=>{
-                        const on=selected.has(date);
-                        return(
-                          <label key={`${l.id}-${date}`} className="flex items-center gap-2 cursor-pointer select-none" style={{fontFamily:"Arial,sans-serif"}}>
-                            <input
-                              type="checkbox"
-                              checked={on}
-                              onChange={()=>{
-                                if(on){removeScheduleDate(l.id,date);}
-                                else{addScheduleDate(l.id,date);}
-                                setSchedulesState(getSchedules());
-                                refresh();
-                              }}
-                              className="w-4 h-4 cursor-pointer shrink-0"
-                              style={{accentColor:"#556B3D"}}
-                            />
-                            <span className="text-xs text-stone-700">{formatDateShort(date)}</span>
-                          </label>
-                        );
-                      })}
-                    </div>
-                    <button onClick={()=>unpin(l.id)} className="text-xs text-red-400 hover:text-red-600 mt-2" style={{fontFamily:"Arial,sans-serif"}}>Remove from saved</button>
-                  </div>
-                );
-              })}
+              {recurringItems.map(l=>(
+                <RecurringCard key={l.id} l={l} schedules={schedules} viewedMonth={viewedMonth}
+                  onUnpin={()=>unpin(l.id)}
+                  onToggle={(date,on)=>{
+                    if(on){removeScheduleDate(l.id,date);}
+                    else{addScheduleDate(l.id,date);}
+                    setSchedulesState(getSchedules());
+                    refresh();
+                  }}
+                />
+              ))}
             </div>
           </div>
         )}
