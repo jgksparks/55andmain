@@ -262,6 +262,7 @@ function AddForm({ onSuccess }: { onSuccess: () => void }) {
     title: "", subcategory: SUBCATEGORIES["Events"][0], description: "",
     date: "", time: "", timeEnd: "", location: "", city: "Chester", state: "CT",
     cost: "Free", contact: "", url: "", tags: "",
+    recurring: "none", recurringDay: "",
   });
   const [seniorDiscount, setSeniorDiscount] = useState(false);
 
@@ -363,6 +364,30 @@ function AddForm({ onSuccess }: { onSuccess: () => void }) {
             {TIMES.map(t => <option key={t}>{t}</option>)}
           </select>
         </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <label className="block text-xs font-semibold mb-1" style={{ fontFamily: "Arial, sans-serif" }}>Repeats</label>
+          <select value={form.recurring} onChange={(e) => set("recurring", e.target.value)}
+            className="w-full border border-stone-300 rounded-lg px-3 py-2 text-sm bg-white" style={{ fontFamily: "Arial, sans-serif" }}>
+            <option value="none">One-time</option>
+            <option value="weekly">Weekly</option>
+            <option value="biweekly">Bi-weekly</option>
+            <option value="monthly">Monthly</option>
+            <option value="seasonal">Seasonal</option>
+          </select>
+        </div>
+        {(form.recurring === "weekly" || form.recurring === "biweekly") && (
+          <div>
+            <label className="block text-xs font-semibold mb-1" style={{ fontFamily: "Arial, sans-serif" }}>Day of Week</label>
+            <select value={form.recurringDay} onChange={(e) => set("recurringDay", e.target.value)}
+              className="w-full border border-stone-300 rounded-lg px-3 py-2 text-sm bg-white" style={{ fontFamily: "Arial, sans-serif" }}>
+              <option value="">— select —</option>
+              {["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"].map(d => <option key={d}>{d}</option>)}
+            </select>
+          </div>
+        )}
       </div>
 
       <div>

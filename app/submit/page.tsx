@@ -38,6 +38,8 @@ export default function SubmitPage() {
     contact: "",
     url: "",
     tags: "",
+    recurring: "none",
+    recurringDay: "",
   });
   const [seniorDiscount, setSeniorDiscount] = useState(false);
 
@@ -213,6 +215,31 @@ export default function SubmitPage() {
               </div>
             </div>
           )}
+
+          {/* Recurring */}
+          <div className="flex gap-3">
+            <div className="flex-1">
+              <label className="block text-sm font-semibold mb-1.5" style={{ fontFamily: "Arial, sans-serif" }}>Repeats</label>
+              <select value={form.recurring} onChange={(e) => set("recurring", e.target.value)}
+                className="w-full border border-stone-300 rounded-lg px-3 py-2.5 text-sm bg-white" style={{ fontFamily: "Arial, sans-serif" }}>
+                <option value="none">One-time</option>
+                <option value="weekly">Weekly</option>
+                <option value="biweekly">Bi-weekly</option>
+                <option value="monthly">Monthly</option>
+                <option value="seasonal">Seasonal</option>
+              </select>
+            </div>
+            {(form.recurring === "weekly" || form.recurring === "biweekly") && (
+              <div className="flex-1">
+                <label className="block text-sm font-semibold mb-1.5" style={{ fontFamily: "Arial, sans-serif" }}>Day of Week</label>
+                <select value={form.recurringDay} onChange={(e) => set("recurringDay", e.target.value)}
+                  className="w-full border border-stone-300 rounded-lg px-3 py-2.5 text-sm bg-white" style={{ fontFamily: "Arial, sans-serif" }}>
+                  <option value="">— select —</option>
+                  {["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"].map(d => <option key={d}>{d}</option>)}
+                </select>
+              </div>
+            )}
+          </div>
 
           {/* Location */}
           <div>

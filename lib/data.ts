@@ -11,6 +11,8 @@ export interface Listing {
   date?: string;
   time?: string;
   timeEnd?: string;
+  recurring?: "none" | "weekly" | "biweekly" | "monthly" | "seasonal";
+  recurringDay?: string;
   location: string;
   city: string;
   state: string;

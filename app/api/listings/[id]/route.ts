@@ -21,6 +21,8 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   if (body.contact !== undefined) updates.contact = body.contact || null;
   if (body.url !== undefined) updates.url = body.url || null;
   if (body.seniorDiscount !== undefined) updates.senior_discount = body.seniorDiscount;
+  if (body.recurring !== undefined) updates.recurring = body.recurring;
+  if (body.recurringDay !== undefined) updates.recurring_day = body.recurringDay || null;
 
   const { error } = await sb.from("listings").update(updates).eq("id", id);
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
