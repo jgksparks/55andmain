@@ -412,8 +412,9 @@ export default function CalendarPage(){
         if(!map[date].find(x=>x.id===l.id)) map[date].push(l);
       }
     }
+    // Recurring: only show dates the user has explicitly selected (stored in schedules)
     for(const l of recurringItems){
-      const dates=getRecurringDates(l);
+      const dates=schedules[l.id]??[];
       for(const date of dates){
         if(!map[date])map[date]=[];
         if(!map[date].find(x=>x.id===l.id)) map[date].push(l);
@@ -552,22 +553,46 @@ export default function CalendarPage(){
           </div>
         )}
 
-        {/* Recurring saved events */}
+        {/* Recurring saved events — date picker checklist */}
         {recurringItems.length>0&&(
           <div>
             <p className="text-xs font-bold text-stone-500 uppercase tracking-wide mb-2" style={{fontFamily:"Arial,sans-serif"}}>Repeating</p>
-            <div className="flex flex-col gap-2">
+            <div className="flex flex-col gap-3">
               {recurringItems.map(l=>{
                 const recurLabel:{[k:string]:string}={daily:"Daily",weekly:`Weekly · ${l.recurringDay??""}`,monthly:"Monthly",annual:"Annual"};
+                const upcomingDates=getRecurringDates(l);
+                const selected=new Set(schedules[l.id]??[]);
                 return(
                   <div key={l.id} className="bg-violet-50 border border-violet-200 rounded-lg p-2.5">
                     <div className="flex items-center gap-1.5 mb-0.5">
                       <span className="w-2 h-2 rounded-full shrink-0" style={{background:CAT[l.category]?.bar??"#888"}}/>
                       <span className="text-xs text-stone-400" style={{fontFamily:"Arial,sans-serif"}}>{l.subcategory}</span>
                     </div>
-                    <p className="text-xs font-semibold text-stone-800 leading-snug">{l.title}</p>
-                    <p className="text-xs text-violet-600 mt-0.5" style={{fontFamily:"Arial,sans-serif"}}>🔄 {recurLabel[l.recurring!]??l.recurring}</p>
-                    <button onClick={()=>unpin(l.id)} className="text-xs text-red-400 hover:text-red-600 mt-1" style={{fontFamily:"Arial,sans-serif"}}>Remove from saved</button>
+                    <p className="text-xs font-semibold text-stone-800 leading-snug mb-1">{l.title}</p>
+                    <p className="text-xs text-violet-600 mb-2" style={{fontFamily:"Arial,sans-serif"}}>🔄 {recurLabel[l.recurring!]??l.recurring}</p>
+                    <p className="text-xs font-semibold text-stone-500 mb-1" style={{fontFamily:"Arial,sans-serif"}}>Add to my calendar:</p>
+                    <div className="flex flex-col gap-1 max-h-40 overflow-y-auto pr-1">
+                      {upcomingDates.slice(0,24).map(date=>{
+                        const on=selected.has(date);
+                        return(
+                          <label key={date} className="flex items-center gap-2 cursor-pointer select-none" style={{fontFamily:"Arial,sans-serif"}}>
+                            <span
+                              className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 transition-colors ${on?"bg-[#556B3D] border-[#556B3D]":"border-stone-300 bg-white"}`}
+                              onClick={()=>{
+                                if(on){removeScheduleDate(l.id,date);}
+                                else{addScheduleDate(l.id,date);}
+                                setSchedulesState(getSchedules());
+                                refresh();
+                              }}
+                            >
+                              {on&&<span className="text-white text-xs font-bold leading-none">✓</span>}
+                            </span>
+                            <span className="text-xs text-stone-700">{formatDateShort(date)}</span>
+                          </label>
+                        );
+                      })}
+                    </div>
+                    <button onClick={()=>unpin(l.id)} className="text-xs text-red-400 hover:text-red-600 mt-2" style={{fontFamily:"Arial,sans-serif"}}>Remove from saved</button>
                   </div>
                 );
               })}
