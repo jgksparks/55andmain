@@ -288,7 +288,7 @@ function AddForm({ onSuccess }: { onSuccess: () => void }) {
     setSaving(false);
     onSuccess();
     setSeniorDiscount(false);
-    setForm({ title: "", subcategory: SUBCATEGORIES[category][0], description: "", date: "", time: "", timeEnd: "", location: "", city: "Chester", state: "CT", cost: "Free", contact: "", url: "", tags: "" });
+    setForm({ title: "", subcategory: SUBCATEGORIES[category][0], description: "", date: "", time: "", timeEnd: "", location: "", city: "Chester", state: "CT", cost: "Free", contact: "", url: "", tags: "", recurring: "none", recurringDay: "" });
   }
 
   return (
