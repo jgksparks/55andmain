@@ -37,7 +37,7 @@ function Badge({ status }: { status: Status }) {
   );
 }
 
-function EditModal({ listing, onClose, onSave }: { listing: Listing; onClose: () => void; onSave: () => void }) {
+function EditModal({ listing, onClose, onSave, organizers }: { listing: Listing; onClose: () => void; onSave: () => void; organizers: string[] }) {
   const [form, setForm] = useState({
     title: listing.title,
     category: listing.category,
@@ -49,6 +49,7 @@ function EditModal({ listing, onClose, onSave }: { listing: Listing; onClose: ()
     location: listing.location,
     city: listing.city,
     cost: listing.cost,
+    organizer: listing.organizer ?? "",
     contact: listing.contact ?? "",
     url: listing.url ?? "",
   });
@@ -144,6 +145,15 @@ function EditModal({ listing, onClose, onSave }: { listing: Listing; onClose: ()
             </div>
           </div>
           <div>
+            <label className="block text-xs font-semibold mb-1" style={{ fontFamily: "Arial, sans-serif" }}>Organizer</label>
+            <input type="text" value={form.organizer} onChange={e => set("organizer", e.target.value)}
+              list="edit-organizer-list" placeholder="e.g. Essex Library"
+              className="w-full border border-stone-300 rounded-lg px-3 py-2 text-sm" style={{ fontFamily: "Arial, sans-serif" }} />
+            <datalist id="edit-organizer-list">
+              {organizers.map(o => <option key={o} value={o} />)}
+            </datalist>
+          </div>
+          <div>
             <label className="block text-xs font-semibold mb-1" style={{ fontFamily: "Arial, sans-serif" }}>Website URL</label>
             <input type="text" value={form.url} onChange={e => set("url", e.target.value)} placeholder="https://"
               className="w-full border border-stone-300 rounded-lg px-3 py-2 text-sm" style={{ fontFamily: "Arial, sans-serif" }} />
@@ -166,7 +176,7 @@ function EditModal({ listing, onClose, onSave }: { listing: Listing; onClose: ()
   );
 }
 
-function AdminRow({ listing, onRefresh }: { listing: Listing; onRefresh: () => void }) {
+function AdminRow({ listing, onRefresh, organizers }: { listing: Listing; onRefresh: () => void; organizers: string[] }) {
   const [busy, setBusy] = useState(false);
   const [editing, setEditing] = useState(false);
 
@@ -192,7 +202,7 @@ function AdminRow({ listing, onRefresh }: { listing: Listing; onRefresh: () => v
 
   return (
     <>
-      {editing && <EditModal listing={listing} onClose={() => setEditing(false)} onSave={onRefresh} />}
+      {editing && <EditModal listing={listing} onClose={() => setEditing(false)} onSave={onRefresh} organizers={organizers} />}
       <div className="bg-white border border-stone-200 rounded-xl p-4 flex flex-col sm:flex-row sm:items-start gap-3">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1 flex-wrap">
@@ -255,14 +265,14 @@ function AdminRow({ listing, onRefresh }: { listing: Listing; onRefresh: () => v
   );
 }
 
-function AddForm({ onSuccess }: { onSuccess: () => void }) {
+function AddForm({ onSuccess, organizers }: { onSuccess: () => void; organizers: string[] }) {
   const [category, setCategory] = useState<Category>("Events");
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({
     title: "", subcategory: SUBCATEGORIES["Events"][0], description: "",
     date: "", time: "", timeEnd: "", location: "", city: "Chester", state: "CT",
     cost: "Free", contact: "", url: "", tags: "",
-    recurring: "none", recurringDay: "", recurringEnd: "",
+    recurring: "none", recurringDay: "", recurringEnd: "", organizer: "",
   });
   const [seniorDiscount, setSeniorDiscount] = useState(false);
 
@@ -288,7 +298,7 @@ function AddForm({ onSuccess }: { onSuccess: () => void }) {
     setSaving(false);
     onSuccess();
     setSeniorDiscount(false);
-    setForm({ title: "", subcategory: SUBCATEGORIES[category][0], description: "", date: "", time: "", timeEnd: "", location: "", city: "Chester", state: "CT", cost: "Free", contact: "", url: "", tags: "", recurring: "none", recurringDay: "", recurringEnd: "" });
+    setForm({ title: "", subcategory: SUBCATEGORIES[category][0], description: "", date: "", time: "", timeEnd: "", location: "", city: "Chester", state: "CT", cost: "Free", contact: "", url: "", tags: "", recurring: "none", recurringDay: "", recurringEnd: "", organizer: "" });
   }
 
   return (
@@ -419,6 +429,16 @@ function AddForm({ onSuccess }: { onSuccess: () => void }) {
       </div>
 
       <div>
+        <label className="block text-xs font-semibold mb-1" style={{ fontFamily: "Arial, sans-serif" }}>Organizer</label>
+        <input type="text" value={form.organizer} onChange={(e) => set("organizer", e.target.value)}
+          list="organizer-list" placeholder="e.g. Essex Library, Chester Land Trust"
+          className="w-full border border-stone-300 rounded-lg px-3 py-2 text-sm" style={{ fontFamily: "Arial, sans-serif" }} />
+        <datalist id="organizer-list">
+          {organizers.map(o => <option key={o} value={o} />)}
+        </datalist>
+      </div>
+
+      <div>
         <label className="block text-xs font-semibold mb-1" style={{ fontFamily: "Arial, sans-serif" }}>Contact (email or phone)</label>
         <input type="text" value={form.contact} onChange={(e) => set("contact", e.target.value)}
           className="w-full border border-stone-300 rounded-lg px-3 py-2 text-sm" style={{ fontFamily: "Arial, sans-serif" }} />
@@ -463,6 +483,7 @@ export default function AdminPage() {
 
   const published = listings.filter(l => l.status === "published");
   const pending = listings.filter(l => l.status === "pending");
+  const organizers = Array.from(new Set(listings.map(l => l.organizer).filter(Boolean))) as string[];
 
   if (!authed) {
     return (
@@ -529,19 +550,19 @@ export default function AdminPage() {
           <div className="flex flex-col gap-3">
             {pending.length === 0
               ? <p className="text-stone-400 text-sm" style={{ fontFamily: "Arial, sans-serif" }}>No pending submissions. You're all caught up.</p>
-              : pending.map(l => <AdminRow key={l.id} listing={l} onRefresh={refresh} />)
+              : pending.map(l => <AdminRow key={l.id} listing={l} onRefresh={refresh} organizers={organizers} />)
             }
           </div>
         )}
 
         {!loading && tab === "published" && (
           <div className="flex flex-col gap-3">
-            {published.map(l => <AdminRow key={l.id} listing={l} onRefresh={refresh} />)}
+            {published.map(l => <AdminRow key={l.id} listing={l} onRefresh={refresh} organizers={organizers} />)}
           </div>
         )}
 
         {tab === "add" && (
-          <AddForm onSuccess={() => { refresh(); setTab("published"); }} />
+          <AddForm onSuccess={() => { refresh(); setTab("published"); }} organizers={organizers} />
         )}
       </main>
     </div>

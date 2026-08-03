@@ -19,6 +19,7 @@ export interface Listing {
   state: string;
   cost: string;
   seniorDiscount?: boolean;
+  organizer?: string;
   contact?: string;
   url?: string;
   tags: string[];
