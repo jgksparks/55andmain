@@ -187,6 +187,7 @@ export default function SubmitPage() {
                   type="date"
                   value={form.date}
                   onChange={(e) => set("date", e.target.value)}
+                  min={new Date().toISOString().split("T")[0]}
                   className="w-full border border-stone-300 rounded-lg px-3 py-2.5 text-sm"
                   style={{ fontFamily: "Arial, sans-serif" }}
                 />
