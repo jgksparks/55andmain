@@ -18,13 +18,15 @@ const SUBCATEGORIES: Record<Category, string[]> = {
 const CURATOR_PASSWORD = "frontporch";
 const CITIES = ["Chester", "Deep River", "Essex", "Old Saybrook", "Old Lyme", "Westbrook", "Clinton"];
 const TIMES: string[] = [
-  "6:00 AM","6:30 AM","7:00 AM","7:30 AM","8:00 AM","8:30 AM","9:00 AM","9:30 AM",
-  "10:00 AM","10:30 AM","11:00 AM","11:30 AM","12:00 PM","12:30 PM","1:00 PM","1:30 PM",
-  "2:00 PM","2:30 PM","3:00 PM","3:30 PM","4:00 PM","4:30 PM","5:00 PM","5:30 PM",
-  "6:00 PM","6:30 PM","7:00 PM","7:30 PM","8:00 PM","8:30 PM","9:00 PM","9:30 PM",
+  "12:00 AM","12:30 AM","1:00 AM","1:30 AM","2:00 AM","2:30 AM","3:00 AM","3:30 AM",
+  "4:00 AM","4:30 AM","5:00 AM","5:30 AM","6:00 AM","6:30 AM","7:00 AM","7:30 AM",
+  "8:00 AM","8:30 AM","9:00 AM","9:30 AM","10:00 AM","10:30 AM","11:00 AM","11:30 AM",
+  "12:00 PM","12:30 PM","1:00 PM","1:30 PM","2:00 PM","2:30 PM","3:00 PM","3:30 PM",
+  "4:00 PM","4:30 PM","5:00 PM","5:30 PM","6:00 PM","6:30 PM","7:00 PM","7:30 PM",
+  "8:00 PM","8:30 PM","9:00 PM","9:30 PM","10:00 PM","10:30 PM","11:00 PM","11:30 PM",
 ];
 
-type Tab = "published" | "pending" | "rejected" | "add";
+type Tab = "published" | "pending" | "rejected" | "add" | "bulk";
 
 function Badge({ status }: { status: Status }) {
   const styles: Record<Status, string> = {
@@ -522,6 +524,187 @@ function AddForm({ onSuccess, organizers }: { onSuccess: () => void; organizers:
   );
 }
 
+function BulkEdit({ listings, organizers, onRefresh }: { listings: Listing[]; organizers: string[]; onRefresh: () => void }) {
+  const [edits, setEdits] = useState<Record<string, { organizer: string; ageRange: string }>>({});
+  const [saving, setSaving] = useState<Record<string, boolean>>({});
+  const [saved, setSaved] = useState<Record<string, boolean>>({});
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [bulkOrganizer, setBulkOrganizer] = useState("");
+  const [bulkAgeRange, setBulkAgeRange] = useState("");
+  const [search, setSearch] = useState("");
+  const [filterCategory, setFilterCategory] = useState<Category | "All">("All");
+
+  function getVal(l: Listing, field: "organizer" | "ageRange") {
+    return edits[l.id]?.[field] ?? (field === "organizer" ? (l.organizer ?? "") : (l.ageRange ?? ""));
+  }
+
+  function setVal(id: string, field: "organizer" | "ageRange", value: string) {
+    setEdits(e => ({ ...e, [id]: { organizer: e[id]?.organizer ?? "", ageRange: e[id]?.ageRange ?? "", [field]: value } }));
+    setSaved(s => ({ ...s, [id]: false }));
+  }
+
+  async function saveRow(l: Listing) {
+    setSaving(s => ({ ...s, [l.id]: true }));
+    await fetch(`/api/listings/${l.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ organizer: getVal(l, "organizer"), ageRange: getVal(l, "ageRange") }),
+    });
+    setSaving(s => ({ ...s, [l.id]: false }));
+    setSaved(s => ({ ...s, [l.id]: true }));
+    onRefresh();
+  }
+
+  const filtered = listings.filter(l => {
+    if (filterCategory !== "All" && l.category !== filterCategory) return false;
+    if (search.trim()) {
+      const q = search.toLowerCase();
+      return l.title.toLowerCase().includes(q) || l.city.toLowerCase().includes(q) || (l.organizer ?? "").toLowerCase().includes(q);
+    }
+    return true;
+  });
+
+  const allChecked = filtered.length > 0 && filtered.every(l => selected.has(l.id));
+
+  function toggleAll() {
+    if (allChecked) {
+      setSelected(s => { const n = new Set(s); filtered.forEach(l => n.delete(l.id)); return n; });
+    } else {
+      setSelected(s => { const n = new Set(s); filtered.forEach(l => n.add(l.id)); return n; });
+    }
+  }
+
+  async function applyBulk() {
+    if (!bulkOrganizer && !bulkAgeRange) return;
+    const ids = Array.from(selected);
+    await Promise.all(ids.map(id =>
+      fetch(`/api/listings/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ...(bulkOrganizer ? { organizer: bulkOrganizer } : {}),
+          ...(bulkAgeRange ? { ageRange: bulkAgeRange } : {}),
+        }),
+      })
+    ));
+    setSelected(new Set());
+    setBulkOrganizer("");
+    setBulkAgeRange("");
+    onRefresh();
+  }
+
+  return (
+    <div>
+      {/* Filter bar */}
+      <div className="flex flex-wrap gap-2 mb-4 items-center">
+        <input type="search" value={search} onChange={e => setSearch(e.target.value)}
+          placeholder="Search title, town, organizer…"
+          className="border border-stone-300 rounded-lg px-3 py-2 text-sm flex-1 min-w-[180px]"
+          style={{ fontFamily: "Arial, sans-serif" }} />
+        <select value={filterCategory} onChange={e => setFilterCategory(e.target.value as Category | "All")}
+          className="border border-stone-300 rounded-lg px-3 py-2 text-sm bg-white"
+          style={{ fontFamily: "Arial, sans-serif" }}>
+          <option value="All">All categories</option>
+          {CATEGORIES.map(c => <option key={c}>{c}</option>)}
+        </select>
+      </div>
+
+      {/* Bulk apply bar — shown when rows are selected */}
+      {selected.size > 0 && (
+        <div className="flex flex-wrap gap-2 mb-4 items-center bg-amber-50 border border-amber-200 rounded-xl px-4 py-3">
+          <span className="text-xs font-semibold text-amber-800" style={{ fontFamily: "Arial, sans-serif" }}>
+            {selected.size} selected — set for all:
+          </span>
+          <input type="text" value={bulkOrganizer} onChange={e => setBulkOrganizer(e.target.value)}
+            list="bulk-org-list" placeholder="Organizer…"
+            className="border border-amber-300 rounded-lg px-3 py-1.5 text-sm flex-1 min-w-[160px]"
+            style={{ fontFamily: "Arial, sans-serif" }} />
+          <datalist id="bulk-org-list">{organizers.map(o => <option key={o} value={o} />)}</datalist>
+          <select value={bulkAgeRange} onChange={e => setBulkAgeRange(e.target.value)}
+            className="border border-amber-300 rounded-lg px-3 py-1.5 text-sm bg-white"
+            style={{ fontFamily: "Arial, sans-serif" }}>
+            <option value="">Age range…</option>
+            {AGE_RANGES.map(a => <option key={a}>{a}</option>)}
+          </select>
+          <button onClick={applyBulk}
+            className="bg-[#556B3D] text-white px-4 py-1.5 rounded-lg text-xs font-semibold hover:bg-[#3d5229]"
+            style={{ fontFamily: "Arial, sans-serif" }}>
+            Apply to all selected
+          </button>
+          <button onClick={() => setSelected(new Set())}
+            className="text-xs text-stone-400 hover:text-stone-700"
+            style={{ fontFamily: "Arial, sans-serif" }}>
+            Deselect
+          </button>
+        </div>
+      )}
+
+      {/* Table */}
+      <div className="overflow-x-auto rounded-xl border border-stone-200">
+        <table className="w-full text-sm" style={{ fontFamily: "Arial, sans-serif" }}>
+          <thead className="bg-stone-50 border-b border-stone-200">
+            <tr>
+              <th className="px-3 py-2.5 text-left w-8">
+                <input type="checkbox" checked={allChecked} onChange={toggleAll}
+                  className="rounded" />
+              </th>
+              <th className="px-3 py-2.5 text-left font-semibold text-stone-600 text-xs">Title</th>
+              <th className="px-3 py-2.5 text-left font-semibold text-stone-600 text-xs">Category</th>
+              <th className="px-3 py-2.5 text-left font-semibold text-stone-600 text-xs">Town</th>
+              <th className="px-3 py-2.5 text-left font-semibold text-stone-600 text-xs">Organizer</th>
+              <th className="px-3 py-2.5 text-left font-semibold text-stone-600 text-xs">Age Range</th>
+              <th className="px-3 py-2.5 text-left font-semibold text-stone-600 text-xs w-16"></th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-stone-100">
+            {filtered.map(l => (
+              <tr key={l.id} className={selected.has(l.id) ? "bg-amber-50" : "bg-white hover:bg-stone-50"}>
+                <td className="px-3 py-2">
+                  <input type="checkbox" checked={selected.has(l.id)}
+                    onChange={() => setSelected(s => { const n = new Set(s); n.has(l.id) ? n.delete(l.id) : n.add(l.id); return n; })}
+                    className="rounded" />
+                </td>
+                <td className="px-3 py-2 max-w-[200px]">
+                  <p className="font-semibold text-stone-800 text-xs leading-snug truncate">{l.title}</p>
+                  <p className="text-stone-400 text-xs">{l.subcategory}</p>
+                </td>
+                <td className="px-3 py-2 text-xs text-stone-500">{l.category}</td>
+                <td className="px-3 py-2 text-xs text-stone-500">{l.city}</td>
+                <td className="px-3 py-2">
+                  <input type="text" value={getVal(l, "organizer")} onChange={e => setVal(l.id, "organizer", e.target.value)}
+                    list="row-org-list"
+                    className="w-full border border-stone-200 rounded px-2 py-1 text-xs focus:border-[#556B3D] focus:outline-none min-w-[140px]" />
+                </td>
+                <td className="px-3 py-2">
+                  <select value={getVal(l, "ageRange")} onChange={e => setVal(l.id, "ageRange", e.target.value)}
+                    className="w-full border border-stone-200 rounded px-2 py-1 text-xs bg-white focus:border-[#556B3D] focus:outline-none min-w-[120px]">
+                    <option value="">—</option>
+                    {AGE_RANGES.map(a => <option key={a}>{a}</option>)}
+                  </select>
+                </td>
+                <td className="px-3 py-2 text-right">
+                  {saved[l.id]
+                    ? <span className="text-green-600 text-xs font-semibold">✓ Saved</span>
+                    : <button onClick={() => saveRow(l)} disabled={saving[l.id]}
+                        className="text-xs bg-[#233249] text-white px-2.5 py-1 rounded font-semibold hover:bg-[#1a2538] disabled:opacity-50"
+                        style={{ fontFamily: "Arial, sans-serif" }}>
+                        {saving[l.id] ? "…" : "Save"}
+                      </button>
+                  }
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        <datalist id="row-org-list">{organizers.map(o => <option key={o} value={o} />)}</datalist>
+      </div>
+      <p className="text-xs text-stone-400 mt-3" style={{ fontFamily: "Arial, sans-serif" }}>
+        {filtered.length} listings shown · Edit cells and click Save per row, or select rows and use Apply to all selected.
+      </p>
+    </div>
+  );
+}
+
 export default function AdminPage() {
   const [password, setPassword] = useState("");
   const [authed, setAuthed] = useState(false);
@@ -617,6 +800,7 @@ export default function AdminPage() {
             { id: "pending", label: `Review (${allPending.length})` },
             { id: "published", label: `Published (${allPublished.length})` },
             { id: "rejected", label: `Rejected (${allRejected.length})` },
+            { id: "bulk", label: "📋 Bulk Edit" },
             { id: "add", label: "➕ Add Listing" },
           ] as { id: Tab; label: string }[]).map(({ id, label }) => (
             <button key={id} onClick={() => setTab(id)}
@@ -702,6 +886,10 @@ export default function AdminPage() {
               : rejected.map(l => <AdminRow key={l.id} listing={l} onRefresh={refresh} organizers={organizers} />)
             }
           </div>
+        )}
+
+        {tab === "bulk" && (
+          <BulkEdit listings={listings} organizers={organizers} onRefresh={refresh} />
         )}
 
         {tab === "add" && (
