@@ -44,6 +44,7 @@ export default function SubmitPage() {
     recurringDay: "",
     recurringEnd: "",
     ageRange: "All Ages",
+    organizer: "",
   });
   const [seniorDiscount, setSeniorDiscount] = useState(false);
 
@@ -252,6 +253,21 @@ export default function SubmitPage() {
                 className="w-full border border-stone-300 rounded-lg px-3 py-2.5 text-sm" style={{ fontFamily: "Arial, sans-serif" }} />
             </div>
           )}
+
+          {/* Organizer */}
+          <div>
+            <label className="block text-sm font-semibold mb-1.5" style={{ fontFamily: "Arial, sans-serif" }}>
+              Organizer / Organization
+            </label>
+            <input
+              type="text"
+              value={form.organizer}
+              onChange={(e) => set("organizer", e.target.value)}
+              placeholder="e.g. Essex Library, Deep River Land Trust"
+              className="w-full border border-stone-300 rounded-lg px-3 py-2.5 text-sm"
+              style={{ fontFamily: "Arial, sans-serif" }}
+            />
+          </div>
 
           {/* Location */}
           <div>

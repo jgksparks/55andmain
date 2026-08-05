@@ -76,15 +76,15 @@ function CityPicker({ cities, selected, onChange }: {
 
   function toggle(c: string) {
     if (selected.includes(c)) {
-      const next = selected.filter(x => x !== c);
-      onChange(next.length === 0 ? cities : next); // if all deselected, show all
+      onChange(selected.filter(x => x !== c));
     } else {
       onChange([...selected, c]);
     }
   }
 
   const allSelected = selected.length === cities.length;
-  const label = allSelected ? "All towns" : selected.length === 1 ? selected[0] : `${selected.length} towns`;
+  const noneSelected = selected.length === 0;
+  const label = allSelected ? "All towns" : noneSelected ? "No towns" : selected.length === 1 ? selected[0] : `${selected.length} towns`;
 
   return (
     <div className="relative" ref={ref}>
@@ -99,13 +99,22 @@ function CityPicker({ cities, selected, onChange }: {
       </button>
       {open && (
         <div className="absolute left-0 top-full mt-1 bg-white text-stone-800 rounded-xl shadow-2xl border border-stone-200 py-2 min-w-[180px] z-50">
-          <button
-            onClick={() => onChange(cities)}
-            className={`w-full text-left px-4 py-2 text-sm font-semibold transition-colors ${allSelected ? "text-[#556B3D]" : "text-stone-500 hover:bg-stone-50"}`}
-            style={{ fontFamily: "Arial, sans-serif" }}
-          >
-            All towns
-          </button>
+          <div className="flex gap-2 px-4 py-1.5">
+            <button
+              onClick={() => onChange(cities)}
+              className={`text-xs font-semibold px-2 py-1 rounded-md transition-colors ${allSelected ? "bg-[#556B3D] text-white" : "text-[#556B3D] hover:bg-stone-100"}`}
+              style={{ fontFamily: "Arial, sans-serif" }}
+            >
+              Select all
+            </button>
+            <button
+              onClick={() => onChange([])}
+              className={`text-xs font-semibold px-2 py-1 rounded-md transition-colors ${noneSelected ? "bg-stone-400 text-white" : "text-stone-400 hover:bg-stone-100"}`}
+              style={{ fontFamily: "Arial, sans-serif" }}
+            >
+              Deselect all
+            </button>
+          </div>
           <div className="border-t border-stone-100 my-1" />
           {cities.map(c => (
             <button
