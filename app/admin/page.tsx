@@ -583,31 +583,56 @@ function AddForm({ onSuccess, organizers }: { onSuccess: () => void; organizers:
   );
 }
 
+type BulkRow = {
+  title: string; category: string; subcategory: string; description: string;
+  date: string; time: string; timeEnd: string; location: string; city: string;
+  cost: string; organizer: string; ageRange: string; contact: string; url: string;
+  tags: string; recurring: string; recurringDay: string; recurringEnd: string;
+  seniorDiscount: boolean;
+};
+
+function rowFromListing(l: Listing): BulkRow {
+  return {
+    title: l.title, category: l.category, subcategory: l.subcategory,
+    description: l.description, date: l.date ?? "", time: l.time ?? "",
+    timeEnd: l.timeEnd ?? "", location: l.location, city: l.city,
+    cost: l.cost, organizer: l.organizer ?? "", ageRange: l.ageRange ?? "",
+    contact: l.contact ?? "", url: l.url ?? "",
+    tags: (l.tags ?? []).join(", "),
+    recurring: l.recurring ?? "none", recurringDay: l.recurringDay ?? "",
+    recurringEnd: l.recurringEnd ?? "", seniorDiscount: l.seniorDiscount ?? false,
+  };
+}
+
 function BulkEdit({ listings, organizers, onRefresh }: { listings: Listing[]; organizers: string[]; onRefresh: () => void }) {
-  const [edits, setEdits] = useState<Record<string, { organizer: string; ageRange: string }>>({});
+  const [edits, setEdits] = useState<Record<string, BulkRow>>({});
   const [saving, setSaving] = useState<Record<string, boolean>>({});
   const [saved, setSaved] = useState<Record<string, boolean>>({});
   const [selected, setSelected] = useState<Set<string>>(new Set());
-  const [bulkOrganizer, setBulkOrganizer] = useState("");
-  const [bulkAgeRange, setBulkAgeRange] = useState("");
+  const [bulkField, setBulkField] = useState("");
+  const [bulkValue, setBulkValue] = useState("");
   const [search, setSearch] = useState("");
   const [filterCategory, setFilterCategory] = useState<Category | "All">("All");
 
-  function getVal(l: Listing, field: "organizer" | "ageRange") {
-    return edits[l.id]?.[field] ?? (field === "organizer" ? (l.organizer ?? "") : (l.ageRange ?? ""));
+  function getRow(l: Listing): BulkRow {
+    return edits[l.id] ?? rowFromListing(l);
   }
 
-  function setVal(id: string, field: "organizer" | "ageRange", value: string) {
-    setEdits(e => ({ ...e, [id]: { organizer: e[id]?.organizer ?? "", ageRange: e[id]?.ageRange ?? "", [field]: value } }));
+  function setField(id: string, field: keyof BulkRow, value: string | boolean, baseL: Listing) {
+    setEdits(e => ({ ...e, [id]: { ...getRow(baseL), ...e[id], [field]: value } }));
     setSaved(s => ({ ...s, [id]: false }));
   }
 
   async function saveRow(l: Listing) {
+    const row = getRow(l);
     setSaving(s => ({ ...s, [l.id]: true }));
     await fetch(`/api/listings/${l.id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ organizer: getVal(l, "organizer"), ageRange: getVal(l, "ageRange") }),
+      body: JSON.stringify({
+        ...row,
+        tags: row.tags.split(",").map((t: string) => t.trim()).filter(Boolean),
+      }),
     });
     setSaving(s => ({ ...s, [l.id]: false }));
     setSaved(s => ({ ...s, [l.id]: true }));
@@ -634,23 +659,24 @@ function BulkEdit({ listings, organizers, onRefresh }: { listings: Listing[]; or
   }
 
   async function applyBulk() {
-    if (!bulkOrganizer && !bulkAgeRange) return;
+    if (!bulkField || bulkValue === "") return;
     const ids = Array.from(selected);
-    await Promise.all(ids.map(id =>
-      fetch(`/api/listings/${id}`, {
+    await Promise.all(ids.map(id => {
+      const base = listings.find(l => l.id === id)!;
+      const updated = { ...getRow(base), [bulkField]: bulkValue };
+      return fetch(`/api/listings/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          ...(bulkOrganizer ? { organizer: bulkOrganizer } : {}),
-          ...(bulkAgeRange ? { ageRange: bulkAgeRange } : {}),
-        }),
-      })
-    ));
+        body: JSON.stringify({ [bulkField]: bulkValue }),
+      }).then(() => setEdits(e => ({ ...e, [id]: updated })));
+    }));
     setSelected(new Set());
-    setBulkOrganizer("");
-    setBulkAgeRange("");
+    setBulkField("");
+    setBulkValue("");
     onRefresh();
   }
+
+  const inp = "border border-stone-200 rounded px-2 py-1 text-xs focus:border-[#556B3D] focus:outline-none bg-white";
 
   return (
     <div>
@@ -668,25 +694,60 @@ function BulkEdit({ listings, organizers, onRefresh }: { listings: Listing[]; or
         </select>
       </div>
 
-      {/* Bulk apply bar — shown when rows are selected */}
+      {/* Bulk apply bar */}
       {selected.size > 0 && (
         <div className="flex flex-wrap gap-2 mb-4 items-center bg-amber-50 border border-amber-200 rounded-xl px-4 py-3">
           <span className="text-xs font-semibold text-amber-800" style={{ fontFamily: "Arial, sans-serif" }}>
-            {selected.size} selected — set for all:
+            {selected.size} selected — set field for all:
           </span>
-          <input type="text" value={bulkOrganizer} onChange={e => setBulkOrganizer(e.target.value)}
-            list="bulk-org-list" placeholder="Organizer…"
-            className="border border-amber-300 rounded-lg px-3 py-1.5 text-sm flex-1 min-w-[160px]"
-            style={{ fontFamily: "Arial, sans-serif" }} />
-          <datalist id="bulk-org-list">{organizers.map(o => <option key={o} value={o} />)}</datalist>
-          <select value={bulkAgeRange} onChange={e => setBulkAgeRange(e.target.value)}
+          <select value={bulkField} onChange={e => { setBulkField(e.target.value); setBulkValue(""); }}
             className="border border-amber-300 rounded-lg px-3 py-1.5 text-sm bg-white"
             style={{ fontFamily: "Arial, sans-serif" }}>
-            <option value="">Age range…</option>
-            {AGE_RANGES.map(a => <option key={a}>{a}</option>)}
+            <option value="">Choose field…</option>
+            <option value="organizer">Organizer</option>
+            <option value="ageRange">Age Range</option>
+            <option value="category">Category</option>
+            <option value="city">Town</option>
+            <option value="cost">Cost</option>
+            <option value="recurring">Repeats</option>
           </select>
-          <button onClick={applyBulk}
-            className="bg-[#556B3D] text-white px-4 py-1.5 rounded-lg text-xs font-semibold hover:bg-[#3d5229]"
+          {bulkField === "ageRange" ? (
+            <select value={bulkValue} onChange={e => setBulkValue(e.target.value)}
+              className="border border-amber-300 rounded-lg px-3 py-1.5 text-sm bg-white"
+              style={{ fontFamily: "Arial, sans-serif" }}>
+              <option value="">—</option>
+              {AGE_RANGES.map(a => <option key={a}>{a}</option>)}
+            </select>
+          ) : bulkField === "category" ? (
+            <select value={bulkValue} onChange={e => setBulkValue(e.target.value)}
+              className="border border-amber-300 rounded-lg px-3 py-1.5 text-sm bg-white"
+              style={{ fontFamily: "Arial, sans-serif" }}>
+              <option value="">—</option>
+              {CATEGORIES.map(c => <option key={c}>{c}</option>)}
+            </select>
+          ) : bulkField === "city" ? (
+            <select value={bulkValue} onChange={e => setBulkValue(e.target.value)}
+              className="border border-amber-300 rounded-lg px-3 py-1.5 text-sm bg-white"
+              style={{ fontFamily: "Arial, sans-serif" }}>
+              <option value="">—</option>
+              {CITIES.map(c => <option key={c}>{c}</option>)}
+            </select>
+          ) : bulkField === "recurring" ? (
+            <select value={bulkValue} onChange={e => setBulkValue(e.target.value)}
+              className="border border-amber-300 rounded-lg px-3 py-1.5 text-sm bg-white"
+              style={{ fontFamily: "Arial, sans-serif" }}>
+              <option value="">—</option>
+              {["none","daily","weekly","monthly","annual"].map(v => <option key={v}>{v}</option>)}
+            </select>
+          ) : bulkField ? (
+            <input type="text" value={bulkValue} onChange={e => setBulkValue(e.target.value)}
+              list="bulk-org-list" placeholder="Value…"
+              className="border border-amber-300 rounded-lg px-3 py-1.5 text-sm flex-1 min-w-[160px]"
+              style={{ fontFamily: "Arial, sans-serif" }} />
+          ) : null}
+          <datalist id="bulk-org-list">{organizers.map(o => <option key={o} value={o} />)}</datalist>
+          <button onClick={applyBulk} disabled={!bulkField || !bulkValue}
+            className="bg-[#556B3D] text-white px-4 py-1.5 rounded-lg text-xs font-semibold hover:bg-[#3d5229] disabled:opacity-40"
             style={{ fontFamily: "Arial, sans-serif" }}>
             Apply to all selected
           </button>
@@ -700,65 +761,122 @@ function BulkEdit({ listings, organizers, onRefresh }: { listings: Listing[]; or
 
       {/* Table */}
       <div className="overflow-x-auto rounded-xl border border-stone-200">
-        <table className="w-full text-sm" style={{ fontFamily: "Arial, sans-serif" }}>
+        <table className="text-xs" style={{ fontFamily: "Arial, sans-serif", minWidth: "1800px" }}>
           <thead className="bg-stone-50 border-b border-stone-200">
             <tr>
-              <th className="px-3 py-2.5 text-left w-8">
-                <input type="checkbox" checked={allChecked} onChange={toggleAll}
-                  className="rounded" />
+              <th className="px-3 py-2.5 text-left w-8 sticky left-0 bg-stone-50 z-10">
+                <input type="checkbox" checked={allChecked} onChange={toggleAll} className="rounded" />
               </th>
-              <th className="px-3 py-2.5 text-left font-semibold text-stone-600 text-xs">Title</th>
-              <th className="px-3 py-2.5 text-left font-semibold text-stone-600 text-xs">Category</th>
-              <th className="px-3 py-2.5 text-left font-semibold text-stone-600 text-xs">Town</th>
-              <th className="px-3 py-2.5 text-left font-semibold text-stone-600 text-xs">Organizer</th>
-              <th className="px-3 py-2.5 text-left font-semibold text-stone-600 text-xs">Age Range</th>
-              <th className="px-3 py-2.5 text-left font-semibold text-stone-600 text-xs w-16"></th>
+              {["Title","Category","Type","Town","Date","Start","End","Location","Cost","Organizer","Age Range","Contact","URL","Tags","Repeats","Rep. Day","Rep. Until","Senior Disc.","Save"].map(h => (
+                <th key={h} className="px-3 py-2.5 text-left font-semibold text-stone-600 whitespace-nowrap">{h}</th>
+              ))}
             </tr>
           </thead>
           <tbody className="divide-y divide-stone-100">
-            {filtered.map(l => (
-              <tr key={l.id} className={selected.has(l.id) ? "bg-amber-50" : "bg-white hover:bg-stone-50"}>
-                <td className="px-3 py-2">
-                  <input type="checkbox" checked={selected.has(l.id)}
-                    onChange={() => setSelected(s => { const n = new Set(s); n.has(l.id) ? n.delete(l.id) : n.add(l.id); return n; })}
-                    className="rounded" />
-                </td>
-                <td className="px-3 py-2 max-w-[200px]">
-                  <p className="font-semibold text-stone-800 text-xs leading-snug truncate">{l.title}</p>
-                  <p className="text-stone-400 text-xs">{l.subcategory}</p>
-                </td>
-                <td className="px-3 py-2 text-xs text-stone-500">{l.category}</td>
-                <td className="px-3 py-2 text-xs text-stone-500">{l.city}</td>
-                <td className="px-3 py-2">
-                  <input type="text" value={getVal(l, "organizer")} onChange={e => setVal(l.id, "organizer", e.target.value)}
-                    list="row-org-list"
-                    className="w-full border border-stone-200 rounded px-2 py-1 text-xs focus:border-[#556B3D] focus:outline-none min-w-[140px]" />
-                </td>
-                <td className="px-3 py-2">
-                  <select value={getVal(l, "ageRange")} onChange={e => setVal(l.id, "ageRange", e.target.value)}
-                    className="w-full border border-stone-200 rounded px-2 py-1 text-xs bg-white focus:border-[#556B3D] focus:outline-none min-w-[120px]">
-                    <option value="">—</option>
-                    {AGE_RANGES.map(a => <option key={a}>{a}</option>)}
-                  </select>
-                </td>
-                <td className="px-3 py-2 text-right">
-                  {saved[l.id]
-                    ? <span className="text-green-600 text-xs font-semibold">✓ Saved</span>
-                    : <button onClick={() => saveRow(l)} disabled={saving[l.id]}
-                        className="text-xs bg-[#233249] text-white px-2.5 py-1 rounded font-semibold hover:bg-[#1a2538] disabled:opacity-50"
-                        style={{ fontFamily: "Arial, sans-serif" }}>
-                        {saving[l.id] ? "…" : "Save"}
-                      </button>
-                  }
-                </td>
-              </tr>
-            ))}
+            {filtered.map(l => {
+              const r = getRow(l);
+              const ch = (f: keyof BulkRow, v: string | boolean) => setField(l.id, f, v, l);
+              return (
+                <tr key={l.id} className={selected.has(l.id) ? "bg-amber-50" : "bg-white hover:bg-stone-50"}>
+                  <td className="px-3 py-2 sticky left-0 bg-inherit z-10">
+                    <input type="checkbox" checked={selected.has(l.id)}
+                      onChange={() => setSelected(s => { const n = new Set(s); n.has(l.id) ? n.delete(l.id) : n.add(l.id); return n; })}
+                      className="rounded" />
+                  </td>
+                  {/* Title */}
+                  <td className="px-2 py-1.5"><input value={r.title} onChange={e => ch("title", e.target.value)} className={inp + " min-w-[160px]"} /></td>
+                  {/* Category */}
+                  <td className="px-2 py-1.5">
+                    <select value={r.category} onChange={e => { ch("category", e.target.value); ch("subcategory", SUBCATEGORIES[e.target.value as Category][0]); }} className={inp + " min-w-[110px]"}>
+                      {CATEGORIES.map(c => <option key={c}>{c}</option>)}
+                    </select>
+                  </td>
+                  {/* Subcategory */}
+                  <td className="px-2 py-1.5">
+                    <select value={r.subcategory} onChange={e => ch("subcategory", e.target.value)} className={inp + " min-w-[130px]"}>
+                      {(SUBCATEGORIES[r.category as Category] ?? []).map(s => <option key={s}>{s}</option>)}
+                    </select>
+                  </td>
+                  {/* Town */}
+                  <td className="px-2 py-1.5">
+                    <select value={r.city} onChange={e => ch("city", e.target.value)} className={inp + " min-w-[100px]"}>
+                      {CITIES.map(c => <option key={c}>{c}</option>)}
+                    </select>
+                  </td>
+                  {/* Date */}
+                  <td className="px-2 py-1.5"><input type="date" value={r.date} onChange={e => ch("date", e.target.value)} className={inp + " min-w-[120px]"} /></td>
+                  {/* Start Time */}
+                  <td className="px-2 py-1.5">
+                    <select value={r.time} onChange={e => ch("time", e.target.value)} className={inp + " min-w-[100px]"}>
+                      <option value="">—</option>
+                      {TIMES.map(t => <option key={t}>{t}</option>)}
+                    </select>
+                  </td>
+                  {/* End Time */}
+                  <td className="px-2 py-1.5">
+                    <select value={r.timeEnd} onChange={e => ch("timeEnd", e.target.value)} className={inp + " min-w-[100px]"}>
+                      <option value="">—</option>
+                      {TIMES.map(t => <option key={t}>{t}</option>)}
+                    </select>
+                  </td>
+                  {/* Location */}
+                  <td className="px-2 py-1.5"><input value={r.location} onChange={e => ch("location", e.target.value)} className={inp + " min-w-[140px]"} /></td>
+                  {/* Cost */}
+                  <td className="px-2 py-1.5"><input value={r.cost} onChange={e => ch("cost", e.target.value)} className={inp + " min-w-[80px]"} /></td>
+                  {/* Organizer */}
+                  <td className="px-2 py-1.5"><input value={r.organizer} onChange={e => ch("organizer", e.target.value)} list="row-org-list" className={inp + " min-w-[140px]"} /></td>
+                  {/* Age Range */}
+                  <td className="px-2 py-1.5">
+                    <select value={r.ageRange} onChange={e => ch("ageRange", e.target.value)} className={inp + " min-w-[120px]"}>
+                      <option value="">—</option>
+                      {AGE_RANGES.map(a => <option key={a}>{a}</option>)}
+                    </select>
+                  </td>
+                  {/* Contact */}
+                  <td className="px-2 py-1.5"><input value={r.contact} onChange={e => ch("contact", e.target.value)} className={inp + " min-w-[130px]"} /></td>
+                  {/* URL */}
+                  <td className="px-2 py-1.5"><input value={r.url} onChange={e => ch("url", e.target.value)} className={inp + " min-w-[130px]"} /></td>
+                  {/* Tags */}
+                  <td className="px-2 py-1.5"><input value={r.tags} onChange={e => ch("tags", e.target.value)} placeholder="comma separated" className={inp + " min-w-[130px]"} /></td>
+                  {/* Recurring */}
+                  <td className="px-2 py-1.5">
+                    <select value={r.recurring} onChange={e => ch("recurring", e.target.value)} className={inp + " min-w-[90px]"}>
+                      {["none","daily","weekly","monthly","annual"].map(v => <option key={v}>{v}</option>)}
+                    </select>
+                  </td>
+                  {/* Recurring Day */}
+                  <td className="px-2 py-1.5">
+                    <select value={r.recurringDay} onChange={e => ch("recurringDay", e.target.value)} className={inp + " min-w-[100px]"}>
+                      <option value="">—</option>
+                      {["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"].map(d => <option key={d}>{d}</option>)}
+                    </select>
+                  </td>
+                  {/* Recurring End */}
+                  <td className="px-2 py-1.5"><input type="date" value={r.recurringEnd} onChange={e => ch("recurringEnd", e.target.value)} className={inp + " min-w-[120px]"} /></td>
+                  {/* Senior Discount */}
+                  <td className="px-2 py-1.5 text-center">
+                    <input type="checkbox" checked={r.seniorDiscount} onChange={e => ch("seniorDiscount", e.target.checked)} className="rounded" />
+                  </td>
+                  {/* Save */}
+                  <td className="px-3 py-1.5 text-right whitespace-nowrap">
+                    {saved[l.id]
+                      ? <span className="text-green-600 font-semibold">✓</span>
+                      : <button onClick={() => saveRow(l)} disabled={saving[l.id]}
+                          className="bg-[#233249] text-white px-2.5 py-1 rounded font-semibold hover:bg-[#1a2538] disabled:opacity-50"
+                          style={{ fontFamily: "Arial, sans-serif" }}>
+                          {saving[l.id] ? "…" : "Save"}
+                        </button>
+                    }
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
         <datalist id="row-org-list">{organizers.map(o => <option key={o} value={o} />)}</datalist>
       </div>
       <p className="text-xs text-stone-400 mt-3" style={{ fontFamily: "Arial, sans-serif" }}>
-        {filtered.length} listings shown · Edit cells and click Save per row, or select rows and use Apply to all selected.
+        {filtered.length} listings · Scroll right to see all fields · Edit cells and Save per row, or select rows and Apply to all selected.
       </p>
     </div>
   );
