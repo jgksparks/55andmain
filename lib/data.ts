@@ -20,6 +20,7 @@ export interface Listing {
   cost: string;
   seniorDiscount?: boolean;
   organizer?: string;
+  ageRange?: string;
   contact?: string;
   url?: string;
   tags: string[];

@@ -19,6 +19,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   if (body.city !== undefined) updates.city = body.city;
   if (body.cost !== undefined) updates.cost = body.cost;
   if (body.organizer !== undefined) updates.organizer = body.organizer || null;
+  if (body.ageRange !== undefined) updates.age_range = body.ageRange || null;
   if (body.contact !== undefined) updates.contact = body.contact || null;
   if (body.url !== undefined) updates.url = body.url || null;
   if (body.seniorDiscount !== undefined) updates.senior_discount = body.seniorDiscount;

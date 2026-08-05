@@ -12,8 +12,10 @@ const TIMES: string[] = [
   "6:00 PM","6:30 PM","7:00 PM","7:30 PM","8:00 PM","8:30 PM","9:00 PM","9:30 PM",
 ];
 
+const AGE_RANGES = ["All Ages", "Adults 55+", "Adults 18+", "Families with Kids", "Teens", "Kids"];
+
 const SUBCATEGORIES: Record<Category, string[]> = {
-  Events: ["Classes", "Lectures", "Music", "Recreation", "Volunteer", "Community Gathering", "Other"],
+  Events: ["Classes", "Exercise & Fitness", "Lectures & Talks", "Live Music", "Music", "Arts & Crafts", "Theatre & Performance", "Recreation & Sport", "Community Gathering", "Senior Programs", "Town Tradition", "Volunteer", "Other"],
   Experiences: ["Adventure Days", "Field Quests", "Self-Guided", "Seasonal Challenge", "Other"],
   Services: ["Local Business", "Senior Services", "Home Services", "Wellness", "Trusted Provider", "Other"],
   Groups: ["Walking Groups", "Pickleball", "Garden Clubs", "Book Clubs", "Volunteer Groups", "Other"],
@@ -41,6 +43,7 @@ export default function SubmitPage() {
     recurring: "none",
     recurringDay: "",
     recurringEnd: "",
+    ageRange: "All Ages",
   });
   const [seniorDiscount, setSeniorDiscount] = useState(false);
 
@@ -296,6 +299,15 @@ export default function SubmitPage() {
               className="w-full border border-stone-300 rounded-lg px-3 py-2.5 text-sm"
               style={{ fontFamily: "Arial, sans-serif" }}
             />
+          </div>
+
+          {/* Age Range */}
+          <div>
+            <label className="block text-sm font-semibold mb-1.5" style={{ fontFamily: "Arial, sans-serif" }}>Age Range</label>
+            <select value={form.ageRange} onChange={(e) => set("ageRange", e.target.value)}
+              className="w-full border border-stone-300 rounded-lg px-3 py-2.5 text-sm bg-white" style={{ fontFamily: "Arial, sans-serif" }}>
+              {AGE_RANGES.map(a => <option key={a}>{a}</option>)}
+            </select>
           </div>
 
           {/* Senior discount */}

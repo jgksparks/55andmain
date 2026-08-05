@@ -4,8 +4,10 @@ import Nav from "@/components/Nav";
 import { type Listing, type Category, type Status } from "@/lib/data";
 
 const CATEGORIES: Category[] = ["Events", "Experiences", "Services", "Groups", "Fundraisers", "Volunteers"];
+const AGE_RANGES = ["All Ages", "Adults 55+", "Adults 18+", "Families with Kids", "Teens", "Kids"];
+
 const SUBCATEGORIES: Record<Category, string[]> = {
-  Events: ["Classes", "Lectures", "Music", "Recreation", "Volunteer", "Community Gathering", "Live Music", "Theatre", "Senior Programs", "Town Tradition", "Other"],
+  Events: ["Classes", "Exercise & Fitness", "Lectures & Talks", "Live Music", "Music", "Arts & Crafts", "Theatre & Performance", "Recreation & Sport", "Community Gathering", "Senior Programs", "Town Tradition", "Volunteer", "Other"],
   Experiences: ["Adventure Days", "Field Quests", "Self-Guided", "Museums & History", "Art & Galleries", "Nature & Trails", "Local Shopping", "Seasonal Challenge", "Other"],
   Services: ["Local Business", "Senior Programs", "Home Services", "Health & Wellness", "Transportation", "Trusted Provider", "Other"],
   Groups: ["Walking Groups", "Pickleball", "Garden Clubs", "Book Clubs", "Volunteer Groups", "Gardening Circle", "Other"],
@@ -50,6 +52,7 @@ function EditModal({ listing, onClose, onSave, organizers }: { listing: Listing;
     city: listing.city,
     cost: listing.cost,
     organizer: listing.organizer ?? "",
+    ageRange: listing.ageRange ?? "All Ages",
     contact: listing.contact ?? "",
     url: listing.url ?? "",
   });
@@ -143,6 +146,13 @@ function EditModal({ listing, onClose, onSave, organizers }: { listing: Listing;
               <input type="text" value={form.contact} onChange={e => set("contact", e.target.value)}
                 className="w-full border border-stone-300 rounded-lg px-3 py-2 text-sm" style={{ fontFamily: "Arial, sans-serif" }} />
             </div>
+          </div>
+          <div>
+            <label className="block text-xs font-semibold mb-1" style={{ fontFamily: "Arial, sans-serif" }}>Age Range</label>
+            <select value={form.ageRange} onChange={e => set("ageRange", e.target.value)}
+              className="w-full border border-stone-300 rounded-lg px-3 py-2 text-sm bg-white" style={{ fontFamily: "Arial, sans-serif" }}>
+              {AGE_RANGES.map(a => <option key={a}>{a}</option>)}
+            </select>
           </div>
           <div>
             <label className="block text-xs font-semibold mb-1" style={{ fontFamily: "Arial, sans-serif" }}>Organizer</label>
@@ -272,7 +282,7 @@ function AddForm({ onSuccess, organizers }: { onSuccess: () => void; organizers:
     title: "", subcategory: SUBCATEGORIES["Events"][0], description: "",
     date: "", time: "", timeEnd: "", location: "", city: "Chester", state: "CT",
     cost: "Free", contact: "", url: "", tags: "",
-    recurring: "none", recurringDay: "", recurringEnd: "", organizer: "",
+    recurring: "none", recurringDay: "", recurringEnd: "", organizer: "", ageRange: "All Ages",
   });
   const [seniorDiscount, setSeniorDiscount] = useState(false);
 
@@ -291,14 +301,14 @@ function AddForm({ onSuccess, organizers }: { onSuccess: () => void; organizers:
         category,
         seniorDiscount,
         tags: form.tags.split(",").map((t) => t.trim()).filter(Boolean),
-        status: "published",
+        status: "pending",
         submittedBy: "curator",
       }),
     });
     setSaving(false);
     onSuccess();
     setSeniorDiscount(false);
-    setForm({ title: "", subcategory: SUBCATEGORIES[category][0], description: "", date: "", time: "", timeEnd: "", location: "", city: "Chester", state: "CT", cost: "Free", contact: "", url: "", tags: "", recurring: "none", recurringDay: "", recurringEnd: "", organizer: "" });
+    setForm({ title: "", subcategory: SUBCATEGORIES[category][0], description: "", date: "", time: "", timeEnd: "", location: "", city: "Chester", state: "CT", cost: "Free", contact: "", url: "", tags: "", recurring: "none", recurringDay: "", recurringEnd: "", organizer: "", ageRange: "All Ages" });
   }
 
   return (
@@ -329,6 +339,14 @@ function AddForm({ onSuccess, organizers }: { onSuccess: () => void; organizers:
           <input type="text" value={form.cost} onChange={(e) => set("cost", e.target.value)}
             className="w-full border border-stone-300 rounded-lg px-3 py-2 text-sm" style={{ fontFamily: "Arial, sans-serif" }} />
         </div>
+      </div>
+
+      <div>
+        <label className="block text-xs font-semibold mb-1" style={{ fontFamily: "Arial, sans-serif" }}>Age Range</label>
+        <select value={form.ageRange} onChange={(e) => set("ageRange", e.target.value)}
+          className="w-full border border-stone-300 rounded-lg px-3 py-2 text-sm bg-white" style={{ fontFamily: "Arial, sans-serif" }}>
+          {AGE_RANGES.map(a => <option key={a}>{a}</option>)}
+        </select>
       </div>
 
       <label className="flex items-center gap-2 cursor-pointer select-none" style={{ fontFamily: "Arial, sans-serif" }}>
