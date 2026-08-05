@@ -531,6 +531,7 @@ export default function AdminPage() {
   const [search, setSearch] = useState("");
   const [filterCategory, setFilterCategory] = useState<Category | "All">("All");
   const [filterCity, setFilterCity] = useState("");
+  const [filterOrganizer, setFilterOrganizer] = useState("");
 
   const refresh = useCallback(async () => {
     setLoading(true);
@@ -545,6 +546,7 @@ export default function AdminPage() {
     let r = items;
     if (filterCategory !== "All") r = r.filter(l => l.category === filterCategory);
     if (filterCity) r = r.filter(l => l.city === filterCity);
+    if (filterOrganizer) r = r.filter(l => l.organizer === filterOrganizer);
     if (search.trim()) {
       const q = search.toLowerCase();
       r = r.filter(l =>
@@ -655,9 +657,18 @@ export default function AdminPage() {
               <option value="">All towns</option>
               {cities.map(c => <option key={c}>{c}</option>)}
             </select>
-            {(search || filterCategory !== "All" || filterCity) && (
+            <select
+              value={filterOrganizer}
+              onChange={e => setFilterOrganizer(e.target.value)}
+              className="border border-stone-300 rounded-lg px-3 py-2 text-sm bg-white"
+              style={{ fontFamily: "Arial, sans-serif" }}
+            >
+              <option value="">All organizers</option>
+              {organizers.map(o => <option key={o}>{o}</option>)}
+            </select>
+            {(search || filterCategory !== "All" || filterCity || filterOrganizer) && (
               <button
-                onClick={() => { setSearch(""); setFilterCategory("All"); setFilterCity(""); }}
+                onClick={() => { setSearch(""); setFilterCategory("All"); setFilterCity(""); setFilterOrganizer(""); }}
                 className="text-xs text-stone-400 hover:text-stone-700 px-2 py-2"
                 style={{ fontFamily: "Arial, sans-serif" }}
               >
