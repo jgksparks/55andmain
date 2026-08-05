@@ -10,7 +10,7 @@ const SUBCATEGORIES: Record<Category, string[]> = {
   Events: ["Classes", "Exercise & Fitness", "Lectures & Talks", "Live Music", "Music", "Arts & Crafts", "Theatre & Performance", "Recreation & Sport", "Community Gathering", "Senior Programs", "Town Tradition", "Volunteer", "Other"],
   Experiences: ["Adventure Days", "Field Quests", "Self-Guided", "Museums & History", "Art & Galleries", "Nature & Trails", "Local Shopping", "Seasonal Challenge", "Other"],
   Services: ["Local Business", "Senior Programs", "Home Services", "Health & Wellness", "Transportation", "Trusted Provider", "Other"],
-  Groups: ["Walking Groups", "Pickleball", "Garden Clubs", "Book Clubs", "Volunteer Groups", "Gardening Circle", "Other"],
+  Groups: ["Walking Groups", "Sailing", "Kayaking & Paddling", "Pickleball", "Tennis", "Cycling", "Hiking Clubs", "Fishing", "Bird Watching", "Garden Clubs", "Book Clubs", "Art Groups", "Photography Clubs", "Yoga & Wellness", "Chess & Games", "Knitting & Crafts", "History & Heritage", "Volunteer Groups", "Other"],
   Fundraisers: ["Community Fund", "Emergency Services Fund", "Community Event Fund", "Land Conservation Fund", "Other"],
   Volunteers: ["River Stewardship", "Food Security", "Trail Maintenance", "Hospital Support", "Community Stewardship", "Town Stewardship", "Emergency Services", "Other"],
 };
@@ -201,6 +201,40 @@ function AdminRow({ listing, onRefresh, organizers }: { listing: Listing; onRefr
     setBusy(false);
   }
 
+  async function duplicate() {
+    setBusy(true);
+    await fetch("/api/listings", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        title: listing.title + " (copy)",
+        category: listing.category,
+        subcategory: listing.subcategory,
+        description: listing.description,
+        date: listing.date,
+        time: listing.time,
+        timeEnd: listing.timeEnd,
+        location: listing.location,
+        city: listing.city,
+        state: listing.state,
+        cost: listing.cost,
+        organizer: listing.organizer,
+        ageRange: listing.ageRange,
+        contact: listing.contact,
+        url: listing.url,
+        tags: listing.tags,
+        recurring: listing.recurring,
+        recurringDay: listing.recurringDay,
+        recurringEnd: listing.recurringEnd,
+        seniorDiscount: listing.seniorDiscount,
+        status: "pending",
+        submittedBy: "curator",
+      }),
+    });
+    onRefresh();
+    setBusy(false);
+  }
+
   async function remove() {
     if (confirm(`Delete "${listing.title}"?`)) {
       setBusy(true);
@@ -264,6 +298,11 @@ function AdminRow({ listing, onRefresh, organizers }: { listing: Listing; onRefr
               Reject
             </button>
           )}
+          <button disabled={busy} onClick={duplicate}
+            className="text-xs bg-stone-100 text-stone-600 px-3 py-1.5 rounded-lg font-semibold hover:bg-stone-200 transition-colors"
+            style={{ fontFamily: "Arial, sans-serif" }}>
+            📋 Duplicate
+          </button>
           <button disabled={busy} onClick={remove}
             className="text-xs text-red-600 hover:text-red-800 px-1 py-1"
             style={{ fontFamily: "Arial, sans-serif" }}>

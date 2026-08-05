@@ -18,7 +18,7 @@ const SUBCATEGORIES: Record<Category, string[]> = {
   Events: ["Classes", "Exercise & Fitness", "Lectures & Talks", "Live Music", "Music", "Arts & Crafts", "Theatre & Performance", "Recreation & Sport", "Community Gathering", "Senior Programs", "Town Tradition", "Volunteer", "Other"],
   Experiences: ["Adventure Days", "Field Quests", "Self-Guided", "Seasonal Challenge", "Other"],
   Services: ["Local Business", "Senior Services", "Home Services", "Wellness", "Trusted Provider", "Other"],
-  Groups: ["Walking Groups", "Pickleball", "Garden Clubs", "Book Clubs", "Volunteer Groups", "Other"],
+  Groups: ["Walking Groups", "Sailing", "Kayaking & Paddling", "Pickleball", "Tennis", "Cycling", "Hiking Clubs", "Fishing", "Bird Watching", "Garden Clubs", "Book Clubs", "Art Groups", "Photography Clubs", "Yoga & Wellness", "Chess & Games", "Knitting & Crafts", "History & Heritage", "Volunteer Groups", "Other"],
   Fundraisers: ["Community Fund", "Emergency Services Fund", "Community Event Fund", "Land Conservation Fund", "Other"],
   Volunteers: ["River Stewardship", "Food Security", "Trail Maintenance", "Hospital Support", "Community Stewardship", "Other"],
 };
