@@ -24,7 +24,7 @@ const TIMES: string[] = [
   "6:00 PM","6:30 PM","7:00 PM","7:30 PM","8:00 PM","8:30 PM","9:00 PM","9:30 PM",
 ];
 
-type Tab = "published" | "pending" | "add";
+type Tab = "published" | "pending" | "rejected" | "add";
 
 function Badge({ status }: { status: Status }) {
   const styles: Record<Status, string> = {
@@ -501,6 +501,7 @@ export default function AdminPage() {
 
   const published = listings.filter(l => l.status === "published");
   const pending = listings.filter(l => l.status === "pending");
+  const rejected = listings.filter(l => l.status === "rejected");
   const organizers = Array.from(new Set(listings.map(l => l.organizer).filter(Boolean))) as string[];
 
   if (!authed) {
@@ -537,7 +538,7 @@ export default function AdminPage() {
           <div>
             <h1 className="text-2xl font-bold">Curator Dashboard</h1>
             <p className="text-sm text-stone-500" style={{ fontFamily: "Arial, sans-serif" }}>
-              {published.length} published · {pending.length} pending review
+              {published.length} published · {pending.length} pending · {rejected.length} rejected
             </p>
           </div>
           <button onClick={() => setAuthed(false)}
@@ -550,6 +551,7 @@ export default function AdminPage() {
           {([
             { id: "pending", label: `Review (${pending.length})` },
             { id: "published", label: `Published (${published.length})` },
+            { id: "rejected", label: `Rejected (${rejected.length})` },
             { id: "add", label: "➕ Add Listing" },
           ] as { id: Tab; label: string }[]).map(({ id, label }) => (
             <button key={id} onClick={() => setTab(id)}
@@ -576,6 +578,15 @@ export default function AdminPage() {
         {!loading && tab === "published" && (
           <div className="flex flex-col gap-3">
             {published.map(l => <AdminRow key={l.id} listing={l} onRefresh={refresh} organizers={organizers} />)}
+          </div>
+        )}
+
+        {!loading && tab === "rejected" && (
+          <div className="flex flex-col gap-3">
+            {rejected.length === 0
+              ? <p className="text-stone-400 text-sm" style={{ fontFamily: "Arial, sans-serif" }}>No rejected listings.</p>
+              : rejected.map(l => <AdminRow key={l.id} listing={l} onRefresh={refresh} organizers={organizers} />)
+            }
           </div>
         )}
 
