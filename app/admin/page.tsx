@@ -44,7 +44,7 @@ function Badge({ status }: { status: Status }) {
 function EditModal({ listing, onClose, onSave, organizers }: { listing: Listing; onClose: () => void; onSave: () => void; organizers: string[] }) {
   const [form, setForm] = useState({
     title: listing.title,
-    category: listing.category,
+    category: listing.category as Category,
     subcategory: listing.subcategory,
     description: listing.description,
     date: listing.date ?? "",
@@ -57,7 +57,12 @@ function EditModal({ listing, onClose, onSave, organizers }: { listing: Listing;
     ageRange: listing.ageRange ?? "All Ages",
     contact: listing.contact ?? "",
     url: listing.url ?? "",
+    tags: (listing.tags ?? []).join(", "),
+    recurring: listing.recurring ?? "none",
+    recurringDay: listing.recurringDay ?? "",
+    recurringEnd: listing.recurringEnd ?? "",
   });
+  const [seniorDiscount, setSeniorDiscount] = useState(listing.seniorDiscount ?? false);
   const [saving, setSaving] = useState(false);
 
   function set(field: string, value: string) { setForm(f => ({ ...f, [field]: value })); }
@@ -68,7 +73,11 @@ function EditModal({ listing, onClose, onSave, organizers }: { listing: Listing;
     await fetch(`/api/listings/${listing.id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(form),
+      body: JSON.stringify({
+        ...form,
+        tags: form.tags.split(",").map(t => t.trim()).filter(Boolean),
+        seniorDiscount,
+      }),
     });
     setSaving(false);
     onSave();
@@ -91,18 +100,25 @@ function EditModal({ listing, onClose, onSave, organizers }: { listing: Listing;
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block text-xs font-semibold mb-1" style={{ fontFamily: "Arial, sans-serif" }}>Category</label>
-              <select value={form.category} onChange={e => set("category", e.target.value)}
+              <select value={form.category} onChange={e => { set("category", e.target.value); set("subcategory", SUBCATEGORIES[e.target.value as Category][0]); }}
                 className="w-full border border-stone-300 rounded-lg px-3 py-2 text-sm bg-white" style={{ fontFamily: "Arial, sans-serif" }}>
                 {CATEGORIES.map(c => <option key={c}>{c}</option>)}
               </select>
             </div>
             <div>
-              <label className="block text-xs font-semibold mb-1" style={{ fontFamily: "Arial, sans-serif" }}>Town</label>
-              <select value={form.city} onChange={e => set("city", e.target.value)}
+              <label className="block text-xs font-semibold mb-1" style={{ fontFamily: "Arial, sans-serif" }}>Type</label>
+              <select value={form.subcategory} onChange={e => set("subcategory", e.target.value)}
                 className="w-full border border-stone-300 rounded-lg px-3 py-2 text-sm bg-white" style={{ fontFamily: "Arial, sans-serif" }}>
-                {CITIES.map(c => <option key={c}>{c}</option>)}
+                {SUBCATEGORIES[form.category].map(s => <option key={s}>{s}</option>)}
               </select>
             </div>
+          </div>
+          <div>
+            <label className="block text-xs font-semibold mb-1" style={{ fontFamily: "Arial, sans-serif" }}>Town</label>
+            <select value={form.city} onChange={e => set("city", e.target.value)}
+              className="w-full border border-stone-300 rounded-lg px-3 py-2 text-sm bg-white" style={{ fontFamily: "Arial, sans-serif" }}>
+              {CITIES.map(c => <option key={c}>{c}</option>)}
+            </select>
           </div>
           <div>
             <label className="block text-xs font-semibold mb-1" style={{ fontFamily: "Arial, sans-serif" }}>Description *</label>
@@ -170,6 +186,49 @@ function EditModal({ listing, onClose, onSave, organizers }: { listing: Listing;
             <input type="text" value={form.url} onChange={e => set("url", e.target.value)} placeholder="https://"
               className="w-full border border-stone-300 rounded-lg px-3 py-2 text-sm" style={{ fontFamily: "Arial, sans-serif" }} />
           </div>
+          <div>
+            <label className="block text-xs font-semibold mb-1" style={{ fontFamily: "Arial, sans-serif" }}>Tags <span className="font-normal text-stone-400">(comma separated)</span></label>
+            <input type="text" value={form.tags} onChange={e => set("tags", e.target.value)} placeholder="walking, free, outdoors"
+              className="w-full border border-stone-300 rounded-lg px-3 py-2 text-sm" style={{ fontFamily: "Arial, sans-serif" }} />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-semibold mb-1" style={{ fontFamily: "Arial, sans-serif" }}>Repeats</label>
+              <select value={form.recurring} onChange={e => set("recurring", e.target.value)}
+                className="w-full border border-stone-300 rounded-lg px-3 py-2 text-sm bg-white" style={{ fontFamily: "Arial, sans-serif" }}>
+                <option value="none">One-time</option>
+                <option value="daily">Daily</option>
+                <option value="weekly">Weekly</option>
+                <option value="monthly">Monthly</option>
+                <option value="annual">Annual</option>
+              </select>
+            </div>
+            {form.recurring === "weekly" && (
+              <div>
+                <label className="block text-xs font-semibold mb-1" style={{ fontFamily: "Arial, sans-serif" }}>Day of Week</label>
+                <select value={form.recurringDay} onChange={e => set("recurringDay", e.target.value)}
+                  className="w-full border border-stone-300 rounded-lg px-3 py-2 text-sm bg-white" style={{ fontFamily: "Arial, sans-serif" }}>
+                  <option value="">— select —</option>
+                  {["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"].map(d => <option key={d}>{d}</option>)}
+                </select>
+              </div>
+            )}
+          </div>
+          {form.recurring !== "none" && (
+            <div>
+              <label className="block text-xs font-semibold mb-1" style={{ fontFamily: "Arial, sans-serif" }}>Repeats Until <span className="font-normal text-stone-400">(optional)</span></label>
+              <input type="date" value={form.recurringEnd} onChange={e => set("recurringEnd", e.target.value)}
+                className="w-full border border-stone-300 rounded-lg px-3 py-2 text-sm" style={{ fontFamily: "Arial, sans-serif" }} />
+            </div>
+          )}
+          <label className="flex items-center gap-3 cursor-pointer select-none" style={{ fontFamily: "Arial, sans-serif" }}>
+            <span className={`w-5 h-5 rounded border flex items-center justify-center shrink-0 ${seniorDiscount ? "bg-[#233249] border-[#233249]" : "border-stone-300"}`}
+              onClick={() => setSeniorDiscount(v => !v)}>
+              {seniorDiscount && <span className="text-[#D49A3A] text-xs font-bold leading-none">✓</span>}
+            </span>
+            <input type="checkbox" checked={seniorDiscount} onChange={e => setSeniorDiscount(e.target.checked)} className="sr-only" />
+            <span className="text-sm font-semibold">🏷️ Senior discount available</span>
+          </label>
           <div className="flex gap-3 pt-2">
             <button type="submit" disabled={saving}
               className="bg-[#556B3D] text-white px-5 py-2 rounded-lg font-semibold text-sm hover:bg-[#3d5229] transition-colors disabled:opacity-50"
