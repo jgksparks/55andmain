@@ -528,6 +528,9 @@ export default function AdminPage() {
   const [tab, setTab] = useState<Tab>("pending");
   const [listings, setListings] = useState<Listing[]>([]);
   const [loading, setLoading] = useState(false);
+  const [search, setSearch] = useState("");
+  const [filterCategory, setFilterCategory] = useState<Category | "All">("All");
+  const [filterCity, setFilterCity] = useState("");
 
   const refresh = useCallback(async () => {
     setLoading(true);
@@ -538,10 +541,31 @@ export default function AdminPage() {
 
   useEffect(() => { if (authed) refresh(); }, [authed, refresh]);
 
-  const published = listings.filter(l => l.status === "published");
-  const pending = listings.filter(l => l.status === "pending");
-  const rejected = listings.filter(l => l.status === "rejected");
+  function applyFilters(items: Listing[]) {
+    let r = items;
+    if (filterCategory !== "All") r = r.filter(l => l.category === filterCategory);
+    if (filterCity) r = r.filter(l => l.city === filterCity);
+    if (search.trim()) {
+      const q = search.toLowerCase();
+      r = r.filter(l =>
+        l.title.toLowerCase().includes(q) ||
+        l.description.toLowerCase().includes(q) ||
+        (l.organizer ?? "").toLowerCase().includes(q) ||
+        l.subcategory.toLowerCase().includes(q) ||
+        l.city.toLowerCase().includes(q)
+      );
+    }
+    return r;
+  }
+
+  const allPublished = listings.filter(l => l.status === "published");
+  const allPending = listings.filter(l => l.status === "pending");
+  const allRejected = listings.filter(l => l.status === "rejected");
+  const published = applyFilters(allPublished);
+  const pending = applyFilters(allPending);
+  const rejected = applyFilters(allRejected);
   const organizers = Array.from(new Set(listings.map(l => l.organizer).filter(Boolean))) as string[];
+  const cities = Array.from(new Set(listings.map(l => l.city).filter(Boolean))).sort() as string[];
 
   if (!authed) {
     return (
@@ -577,7 +601,7 @@ export default function AdminPage() {
           <div>
             <h1 className="text-2xl font-bold">Curator Dashboard</h1>
             <p className="text-sm text-stone-500" style={{ fontFamily: "Arial, sans-serif" }}>
-              {published.length} published · {pending.length} pending · {rejected.length} rejected
+              {allPublished.length} published · {allPending.length} pending · {allRejected.length} rejected
             </p>
           </div>
           <button onClick={() => setAuthed(false)}
@@ -588,9 +612,9 @@ export default function AdminPage() {
 
         <div className="flex gap-1 mb-6 border-b border-stone-200">
           {([
-            { id: "pending", label: `Review (${pending.length})` },
-            { id: "published", label: `Published (${published.length})` },
-            { id: "rejected", label: `Rejected (${rejected.length})` },
+            { id: "pending", label: `Review (${allPending.length})` },
+            { id: "published", label: `Published (${allPublished.length})` },
+            { id: "rejected", label: `Rejected (${allRejected.length})` },
             { id: "add", label: "➕ Add Listing" },
           ] as { id: Tab; label: string }[]).map(({ id, label }) => (
             <button key={id} onClick={() => setTab(id)}
@@ -602,6 +626,46 @@ export default function AdminPage() {
             </button>
           ))}
         </div>
+
+        {tab !== "add" && (
+          <div className="flex flex-wrap gap-2 mb-5 items-center">
+            <input
+              type="search"
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              placeholder="Search title, organizer, town…"
+              className="border border-stone-300 rounded-lg px-3 py-2 text-sm flex-1 min-w-[200px]"
+              style={{ fontFamily: "Arial, sans-serif" }}
+            />
+            <select
+              value={filterCategory}
+              onChange={e => setFilterCategory(e.target.value as Category | "All")}
+              className="border border-stone-300 rounded-lg px-3 py-2 text-sm bg-white"
+              style={{ fontFamily: "Arial, sans-serif" }}
+            >
+              <option value="All">All categories</option>
+              {CATEGORIES.map(c => <option key={c}>{c}</option>)}
+            </select>
+            <select
+              value={filterCity}
+              onChange={e => setFilterCity(e.target.value)}
+              className="border border-stone-300 rounded-lg px-3 py-2 text-sm bg-white"
+              style={{ fontFamily: "Arial, sans-serif" }}
+            >
+              <option value="">All towns</option>
+              {cities.map(c => <option key={c}>{c}</option>)}
+            </select>
+            {(search || filterCategory !== "All" || filterCity) && (
+              <button
+                onClick={() => { setSearch(""); setFilterCategory("All"); setFilterCity(""); }}
+                className="text-xs text-stone-400 hover:text-stone-700 px-2 py-2"
+                style={{ fontFamily: "Arial, sans-serif" }}
+              >
+                Clear
+              </button>
+            )}
+          </div>
+        )}
 
         {loading && <p className="text-sm text-stone-400" style={{ fontFamily: "Arial, sans-serif" }}>Loading…</p>}
 
